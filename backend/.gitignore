@@ -1,0 +1,24 @@
+# Compiled
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Spring Boot
+application-dev.properties
+application-prod.properties
+application-local.properties
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
