@@ -7,8 +7,6 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-import org.aspectj.internal.lang.annotation.ajcPrivileged;
-
 @Getter
 @Setter
 public class RegisterRequestDTO {

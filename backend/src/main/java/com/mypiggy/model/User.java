@@ -12,8 +12,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.springframework.security.access.method.P;
-
 @Entity
 @Table(name = "users")
 @Getter

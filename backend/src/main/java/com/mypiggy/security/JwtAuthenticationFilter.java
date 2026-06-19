@@ -1,6 +1,5 @@
 package com.mypiggy.security;
 
-import com.mypiggy.model.User;
 import com.mypiggy.repository.UserRepository;
 
 import jakarta.servlet.FilterChain;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 
 @Component
