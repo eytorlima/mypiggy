@@ -62,7 +62,8 @@ public class AuthController {
         );
 
 
-        return ResponseEntity.ok(ApiResponse.success("Usuário autenticado!", response));
+        return ResponseEntity
+                .ok(ApiResponse.success("Usuário autenticado!", response));
 
     }
 }
