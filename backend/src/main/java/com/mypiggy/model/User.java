@@ -44,14 +44,14 @@ public class User {
     @Column(name = "cpf", nullable = false, unique = true, length = 11)
     private String cpf;
 
-    @NotBlank(message = "Celular é obrigatório")
+    // @NotBlank(message = "Celular é obrigatório")
     @Pattern(regexp = "\\d{10,11}", message = "Telefone deve ter apenas números e conter DDD (10 ou 11 dígitos)") //garantir que é só digito e tem o tamanho certo no front
-    @Column(name = "phone", nullable = false, length = 20)
+    @Column(name = "phone", nullable = true, length = 20)
     private String phone;
 
     @Past(message = "Data de nascimento deve ser no passado")
-    @NotNull(message = "Data de nascimento é obrigatória")
-    @Column(name = "birth_date", nullable = false)
+    // @NotNull(message = "Data de nascimento é obrigatória")
+    @Column(name = "birth_date", nullable = true)
     private LocalDate birthDate;
 
     @Column(name = "created_at", nullable = false, updatable = false)
