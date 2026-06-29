@@ -17,16 +17,17 @@ api.interceptors.request.use((config) => {
 
 //interceptor para rodar depois das respostas da chamada
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-        }
-    
+  (response) => response,
+  (error) => {
+    const isAuthRoute = error.config?.url?.includes('/auth/');
 
-        return Promise.reject(error);
+    if (error.response?.status === 401 && !isAuthRoute) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
     }
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;

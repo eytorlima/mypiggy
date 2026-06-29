@@ -43,7 +43,7 @@ export function LoginPage() {
       const response = await api.post('/auth/login', data);
       const { token, id, name, email } = response.data.data;
       login(token, { id, name, email });
-      navigate('/dashboard');
+      navigate('/dashboard', {replace: true});
     } catch (error) {
       setApiError(error.response?.data?.message || 'Erro ao fazer login, tente novamente.');
     }
