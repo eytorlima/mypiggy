@@ -56,7 +56,7 @@ export function RegisterPage() {
     try {
       await api.post('/auth/register', {
         name: data.name,
-        email: data.email,
+        email: data.email.toLowerCase(),
         cpf: data.cpf,       // já vem limpo pelo .transform() do Zod
         password: data.password,
       });

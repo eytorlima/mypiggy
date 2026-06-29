@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,8 +13,8 @@ import api from '../../services/api';
 import { PiggyLogo } from '../../components/ui/PiggyLogo';
 import { SocialButton } from '../../components/ui/SocialButton';
 import { InputField } from '../../components/ui/InputField';
-import GoogleIcon from '@mui/icons-material/Google';
 
+import GoogleIcon from '@mui/icons-material/Google';
 import EmailOutlined from '@mui/icons-material/EmailOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 
@@ -24,6 +25,8 @@ const loginSchema = z.object({
 
 export function LoginPage() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isExpired = searchParams.get('expired') === 'true';
   const successMessage = location.state?.message;
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -37,30 +40,40 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  async function onSubmit(data) {
-    setApiError('');
-    try {
-      const response = await api.post('/auth/login', data);
-      const { token, id, name, email } = response.data.data;
-      login(token, { id, name, email });
-      navigate('/dashboard', {replace: true});
-    } catch (error) {
-      setApiError(error.response?.data?.message || 'Erro ao fazer login, tente novamente.');
-    }
+ async function onSubmit(data) {
+  setApiError('');
+  try {
+    const response = await api.post('/auth/login', {
+      ...data,
+      email: data.email.toLowerCase(),
+    });
+    const { token, id, name, email } = response.data.data;
+    login(token, { id, name, email });
+    navigate('/dashboard', { replace: true });
+  } catch (error) {
+    setApiError(error.response?.data?.message || 'Erro ao fazer login, tente novamente.');
   }
+}
 
-  return (
+  return (        
     <main className="flex flex-col items-center justify-center h-screen bg-primary-600">
-
-      <div className="flex flex-col w-lg h-auto py-7 rounded-2xl shadow-lg items-center justify-center text-white bg-primary-500">
-
         {successMessage && (
-          <div className="flex items-center gap-2 bg-black border-2 border-primary-900 text-white text-xs px-3 py-2 rounded-lg w-96 mb-2">
+          <div className="absolute top-0 flex items-center gap-2 bg-black border-2 border-primary-900 shadow-md 
+          font-normal text-white text-sm px-3 py-2 rounded-lg w-auto mt-8">
             <span>✓</span>
             <p>{successMessage}</p>
           </div>
         )} 
-        
+
+        {isExpired && (
+          <div className="absolute top-0 flex items-center gap-2 bg-yellow-100 border-2 border-yellow-800 shadow-md 
+          font-normal text-yellow-800 text-sm px-3 py-2 rounded-lg w-auto mt-8">
+            <span>⚠</span>
+            <p>Sua sessão expirou. Por favor, faça login novamente.</p>
+          </div>
+        )}
+
+      <div className="flex flex-col w-lg h-auto py-7 rounded-2xl shadow-lg items-center justify-center text-white bg-primary-500">
         <PiggyLogo size={80} />
         <h3 className="text-2xl text-shadow-sm font-bold tracking-wide mt-5">
           Bem-vindo(a) de volta!
