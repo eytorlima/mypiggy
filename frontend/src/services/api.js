@@ -21,7 +21,7 @@ api.interceptors.response.use(
   (error) => {
     const isAuthRoute = error.config?.url?.includes('/auth/');
 
-    if (error.response?.status === 401 || !isAuthRoute) {
+    if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
       window.location.href = '/login?expired=true';
     }

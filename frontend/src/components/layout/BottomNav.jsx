@@ -19,7 +19,7 @@ export function BottomNav({ onFabClick }){
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 bg-transparent z-40 border-t border-gray-200 shadow-lg">
-         <div className="flex items-center justify-around px-2 py-1 bg-gray-900 ">
+         <div className="flex items-center justify-between px-4 py-1 bg-gray-900 gap-20">
         {navItems.map((item) => {
 
         // FAB central
@@ -29,11 +29,11 @@ export function BottomNav({ onFabClick }){
                 key="fab"
                 onClick={onFabClick}
                 className="
-                flex items-center justify-center
+                absolute left-1/2 -translate-x-1/2 -translate-y-6
                 w-18 h-18 rounded-full
                 bg-primary-500 text-white shadow-xl border-2
-                hover:bg-primary-600 ease-in-out duration-300
-                -translate-y-6 hover:cursor-pointer
+                flex items-center justify-center
+                hover:bg-primary-600 hover:cursor-pointer ease-in-out duration-300
                 "
             >
                 <AddIcon fontSize="large" />
@@ -47,7 +47,7 @@ export function BottomNav({ onFabClick }){
             <button
             key={item.path}
             onClick={() => navigate(item.path)}
-            className={`group rounded-md flex flex-col items-center gap-0.5 px-3 py-1 font-semibold hover:cursor-pointer hover:text-gray-100 ease-in-out duration-300
+            className={`group rounded-md flex-1 flex flex-col items-center gap-0.5 px-3 py-1 font-semibold hover:cursor-pointer hover:text-gray-100 ease-in-out duration-300
                   ${isActive ? 'bg-black' : ''}`}
             >
             <span className={`${isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-100 ease-in-out duration-200'}`}>

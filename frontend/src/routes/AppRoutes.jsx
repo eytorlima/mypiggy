@@ -9,7 +9,7 @@ import { RegisterPage } from '../pages/Register/RegisterPage';
 import { PrivacyPage } from '../pages/Privacy/PrivacyPage';
 import { SettingsPage } from '../pages/Settings/SettingsPage';
 
-import { Dashboard } from '../pages/Dashboard/Dashboard';
+import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { TransactionsPage } from '../pages/Transactions/TransactionsPage';
 import { GoalsPage } from '../pages/Goals/GoalsPage';
 import { ActionsPage } from '../pages/Actions/ActionsPage';
@@ -28,7 +28,7 @@ export function AppRoutes() {
 
         {/* Rotas privadas — todas filhas do AppLayout */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/actions" element={<ActionsPage />} />
