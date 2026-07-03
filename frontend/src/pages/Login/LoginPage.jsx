@@ -109,9 +109,9 @@ export function LoginPage() {
             icon={<LockOutlined fontSize="small" />}
             register={register('password')}
             error={errors.password?.message}
+            allowPasswordToggle
           />
 
-          {/* Esqueceu a senha — não funcional */}
           <span className="text-xs text-left text-white cursor-pointer hover:underline">
             Esqueceu sua senha?
           </span>
@@ -124,7 +124,6 @@ export function LoginPage() {
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </button>
 
-          {/* Erro da API */}
           {apiError && (
             <p className="text-red-700 text-xs text-center">{apiError}</p>
           )}

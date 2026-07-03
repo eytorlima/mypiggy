@@ -78,7 +78,6 @@ export function RegisterPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-1 w-96 h-auto gap-2 mt-5">
 
-          {/* Nome completo */}
           <InputField
             label="Nome completo"
             type="text"
@@ -89,7 +88,6 @@ export function RegisterPage() {
             size="sm"
           />
 
-          {/* E-mail */}
           <InputField
             label="Seu e-mail"
             type="email"
@@ -100,7 +98,6 @@ export function RegisterPage() {
             size="sm"
           />
 
-          {/* CPF — máscara manual */}
           <InputField
             label="CPF"
             type="text"
@@ -122,7 +119,6 @@ export function RegisterPage() {
             size="sm"
           />
 
-          {/* Senha */}
           <InputField
             label="Sua senha"
             type="password"
@@ -131,17 +127,18 @@ export function RegisterPage() {
             register={register('password')}
             error={errors.password?.message}
             size="sm"
+            allowPasswordToggle
           />
 
-          {/* Confirmar senha */}
           <InputField
             label="Confirmar senha"
             type="password"
             placeholder="••••••••"
-            icon={<LockOpenOutlined fontSize="small" />}
+            icon={<LockOutlined fontSize="small" />}
             register={register('confirmPassword')}
             error={errors.confirmPassword?.message}
             size="sm"
+            allowPasswordToggle
           />
 
           <div className="flex items-start gap-2">
@@ -171,7 +168,6 @@ export function RegisterPage() {
             {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
           </button>
           
-          {/* Erro da API */}
           {apiError && (
             <p className="text-red-900 text-sm font-semibold text-center">{apiError}</p>
           )}
