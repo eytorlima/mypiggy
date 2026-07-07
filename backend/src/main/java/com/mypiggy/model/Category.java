@@ -1,42 +1,48 @@
 package com.mypiggy.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
-@Table(name = "accounts")
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "account_type", discriminatorType = DiscriminatorType.STRING)
+@Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
-public abstract class Account {
+@AllArgsConstructor
+public class Category {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
-    @Column(name = "name", nullable = false, length = 100)
+    @NotBlank
+    @Size(max = 50)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    @Column(name = "color", length = 20)
+    @Column(name = "description", length = 255)
+    private String description;
+
+    @Column(name = "color", length = 7)
     private String color;
 
     @Column(name = "icon", length = 50)
     private String icon;
 
-    @Column(name = "balance_in_cents", nullable = false)
-    private Long balanceInCents = 0L;
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -18,6 +18,8 @@ public class AccountResponseDTO {
     private String name;
     private String accountType;
     private Long balanceInCents;
+    private String color;
+    private String icon;
 
     // Campos específicos (null se não aplicável ao tipo)
     private String agency;

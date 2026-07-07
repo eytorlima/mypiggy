@@ -17,6 +17,18 @@ public class AccountRequestDTO {
 
     private Long balanceInCents = 0L;
 
+    @Pattern(
+        regexp = "^(green|blue|purple|red|orange|pink|yellow|gray)$",
+        message = "Cor inválida"
+    )
+    private String color;
+
+    @Pattern(
+        regexp = "^(bank|wallet|savings|digital)$",
+        message = "Ícone inválido. Use: bank, wallet, savings ou digital"
+    )
+    private String icon;
+
     // Campos específicos de BankAccount
     private String agency;
     private String accountNumber;

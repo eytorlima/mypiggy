@@ -29,6 +29,8 @@ public class AccountService {
         account.setUser(user);
         account.setName(request.getName());
         account.setBalanceInCents(request.getBalanceInCents() != null ? request.getBalanceInCents() : 0L);
+        account.setColor(request.getColor());
+        account.setIcon(request.getIcon());
 
         Account saved = accountRepository.save(account);
         return toResponseDTO(saved);
@@ -111,6 +113,8 @@ public class AccountService {
         dto.setAccountType(account.getClass().getAnnotation(
             jakarta.persistence.DiscriminatorValue.class).value());
         dto.setBalanceInCents(account.getBalanceInCents());
+        dto.setColor(account.getColor());
+        dto.setIcon(account.getIcon());
         dto.setCreatedAt(account.getCreatedAt());
         dto.setUpdatedAt(account.getUpdatedAt());
 
