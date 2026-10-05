@@ -13,6 +13,7 @@ import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { TransactionsPage } from '../pages/Transactions/TransactionsPage';
 import { GoalsPage } from '../pages/Goals/GoalsPage';
 import { ActionsPage } from '../pages/Actions/ActionsPage';
+import { AccountsPage } from '../pages/Accounts/AccountsPage';
 
 export function AppRoutes() {
   return (
@@ -31,6 +32,7 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/actions" element={<ActionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

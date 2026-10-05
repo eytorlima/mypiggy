@@ -9,6 +9,7 @@ import com.mypiggy.repository.AccountRepository;
 import com.mypiggy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public AccountResponseDTO create(AccountRequestDTO request, UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
@@ -36,6 +38,7 @@ public class AccountService {
         return toResponseDTO(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<AccountResponseDTO> listByUser(UUID userId) {
         return accountRepository.findAllByUserId(userId)
                 .stream()
@@ -43,17 +46,30 @@ public class AccountService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public AccountResponseDTO getById(UUID accountId, UUID userId) {
         Account account = accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
         return toResponseDTO(account);
     }
 
+    @Transactional
     public AccountResponseDTO update(UUID accountId, AccountRequestDTO request, UUID userId) {
         Account account = accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
 
+        // O tipo da conta (discriminador SINGLE_TABLE) não pode ser alterado aqui.
         account.setName(request.getName());
+
+        if (request.getBalanceInCents() != null) {
+            account.setBalanceInCents(request.getBalanceInCents());
+        }
+        if (request.getColor() != null) {
+            account.setColor(request.getColor());
+        }
+        if (request.getIcon() != null) {
+            account.setIcon(request.getIcon());
+        }
 
         // Atualiza campos específicos se aplicável
         if (account instanceof BankAccount ba) {
@@ -70,14 +86,17 @@ public class AccountService {
         return toResponseDTO(updated);
     }
 
+    @Transactional
     public void delete(UUID accountId, UUID userId) {
         Account account = accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
         accountRepository.delete(account);
     }
 
+    @Transactional(readOnly = true)
     public Long getSummary(UUID userId) {
-        return accountRepository.sumBalanceByUserId(userId);
+        Long total = accountRepository.sumBalanceByUserId(userId);
+        return total != null ? total : 0L;
     }
 
     // Monta a subclasse correta com base no accountType
