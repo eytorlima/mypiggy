@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { createAccount, updateAccount } from '../../services/accountService';
 import { InputField } from '../ui/InputField';
 import { formatBRL } from '../../utils/formatCurrency';
+import {toCents, parseMoney, formatMoney, sanitizeMoney} from '../../utils/moneyUtils';
 import { colorMap, accountIconMap } from '../../utils/accountUtils';
+import { SelectField } from './SelectField';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 import ExpandMoreOutlined from '@mui/icons-material/ExpandMoreOutlined';
 import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
@@ -18,33 +20,6 @@ const accountTypes = [
 
 // Primeiro ícone da lista é sempre o padrão
 const DEFAULT_ICON = Object.keys(accountIconMap)[0];
-
-/* ---------- Helpers de dinheiro (podem ir para utils/moneyUtils.js) ---------- */
-
-// Aceita "1234,56", "1.234,56", "1234.56" e devolve number (ou NaN)
-function parseMoney(str) {
-  if (!str) return 0;
-  let s = String(str).trim();
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  return Number(s);
-}
-
-function formatMoney(value) {
-  return Number(value || 0).toFixed(2).replace('.', ',');
-}
-
-// Só dígitos, um único separador (. ou ,) e no máximo 2 casas decimais
-function sanitizeMoney(str) {
-  const s = str.replace(/[^\d.,]/g, '');
-  const idx = s.search(/[.,]/);
-  if (idx === -1) return s;
-
-  const separator = s[idx];
-  const intPart = s.slice(0, idx);
-  const decPart = s.slice(idx + 1).replace(/[.,]/g, '').slice(0, 2);
-
-  return `${intPart}${separator}${decPart}`;
-}
 
 /* ---------- Schema ---------- */
 
@@ -72,72 +47,72 @@ const EMPTY_VALUES = {
 
 /* ---------- Select customizado com animação ---------- */
 
-function SelectField({ label, options, value, onChange, error }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef(null);
+// function SelectField({ label, options, value, onChange, error }) {
+//   const [isOpen, setIsOpen] = useState(false);
+//   const ref = useRef(null);
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setIsOpen(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+//   useEffect(() => {
+//     function handleClickOutside(e) {
+//       if (ref.current && !ref.current.contains(e.target)) setIsOpen(false);
+//     }
+//     document.addEventListener('mousedown', handleClickOutside);
+//     return () => document.removeEventListener('mousedown', handleClickOutside);
+//   }, []);
 
-  const selected = options.find((o) => o.value === value);
+//   const selected = options.find((o) => o.value === value);
 
-  return (
-    <div className="flex flex-col gap-1" ref={ref}>
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+//   return (
+//     <div className="flex flex-col gap-1" ref={ref}>
+//       <label className="text-sm font-medium text-gray-700">{label}</label>
 
-      <div className="relative">
-        <button
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          onClick={() => setIsOpen((o) => !o)}
-          className="w-full flex items-center justify-between gap-3 pl-3 pr-4 py-2 rounded-lg border border-gray-300
-                     bg-white text-sm text-gray-700 hover:cursor-pointer focus:outline-none focus:border-primary-500"
-        >
-          <span>{selected?.label ?? 'Selecione...'}</span>
-          <ExpandMoreOutlined
-            fontSize="small"
-            className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
+//       <div className="relative">
+//         <button
+//           type="button"
+//           aria-haspopup="listbox"
+//           aria-expanded={isOpen}
+//           onClick={() => setIsOpen((o) => !o)}
+//           className="w-full flex items-center justify-between gap-3 pl-3 pr-4 py-2 rounded-lg border border-gray-300
+//                      bg-white text-sm text-gray-700 hover:cursor-pointer focus:outline-none focus:border-primary-500"
+//         >
+//           <span>{selected?.label ?? 'Selecione...'}</span>
+//           <ExpandMoreOutlined
+//             fontSize="small"
+//             className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+//           />
+//         </button>
 
-        <ul
-          role="listbox"
-          className={`absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden
-                      origin-top transition-all duration-200 ease-out z-60
-                      ${isOpen
-                        ? 'opacity-100 translate-y-0 scale-100'
-                        : 'opacity-0 -translate-y-2 scale-95 pointer-events-none'}`}
-        >
-          {options.map((opt) => (
-            <li
-              key={opt.value}
-              role="option"
-              aria-selected={opt.value === value}
-              onClick={() => {
-                onChange(opt.value);
-                setIsOpen(false);
-              }}
-              className={`px-4 py-2 text-sm hover:cursor-pointer transition-colors
-                          ${opt.value === value
-                            ? 'bg-primary-50 text-primary-600 font-semibold'
-                            : 'text-gray-700 hover:bg-gray-100'}`}
-            >
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      </div>
+//         <ul
+//           role="listbox"
+//           className={`absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden
+//                       origin-top transition-all duration-200 ease-out z-60
+//                       ${isOpen
+//                         ? 'opacity-100 translate-y-0 scale-100'
+//                         : 'opacity-0 -translate-y-2 scale-95 pointer-events-none'}`}
+//         >
+//           {options.map((opt) => (
+//             <li
+//               key={opt.value}
+//               role="option"
+//               aria-selected={opt.value === value}
+//               onClick={() => {
+//                 onChange(opt.value);
+//                 setIsOpen(false);
+//               }}
+//               className={`px-4 py-2 text-sm hover:cursor-pointer transition-colors
+//                           ${opt.value === value
+//                             ? 'bg-primary-50 text-primary-600 font-semibold'
+//                             : 'text-gray-700 hover:bg-gray-100'}`}
+//             >
+//               {opt.label}
+//             </li>
+//           ))}
+//         </ul>
+//       </div>
 
-      {error && <p className="text-red-500 text-xs">{error}</p>}
-    </div>
-  );
-}
+//       {error && <p className="text-red-500 text-xs">{error}</p>}
+//     </div>
+//   );
+// }
 
 /* ---------- Seletor Positivo / Devedor (segmented control animado) ---------- */
 

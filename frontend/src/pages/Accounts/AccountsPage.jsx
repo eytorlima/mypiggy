@@ -6,6 +6,8 @@ import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
+import { getCategories } from '../../services/categoryService';
+import { getTransactions } from '../../services/transactionService';
 
 export function AccountsPage() {
   const [accounts, setAccounts] = useState([]);
@@ -23,6 +25,18 @@ export function AccountsPage() {
 
   useEffect(() => {
     loadAccounts();
+  }, []);
+
+  useEffect(() => {
+    console.log("passou aqui");
+    getCategories()
+      .then((c) => console.log('CATEGORIAS', c))
+      .catch((e) => console.log('ERRO categorias', e.response?.status, e.response?.data));
+    
+    console.log("passou aqui2");
+    getTransactions()
+      .then((t) => console.log('TRANSAÇÕES', t))
+      .catch((e) => console.log('ERRO transações', e.response?.status, e.response?.data));
   }, []);
 
   async function loadAccounts() {
