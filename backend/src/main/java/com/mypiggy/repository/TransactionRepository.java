@@ -61,4 +61,89 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
         @Param("id") UUID id,
         @Param("userId") UUID userId
     );
+
+    /* ------------------------------------------------------------------ */
+    /* Relatórios (usados por ReportService)                               */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Total por categoria no intervalo [startDate, endDate).
+     * Linha: [0]=category id (null = sem categoria), [1]=nome, [2]=cor, [3]=ícone,
+     *        [4]=total em centavos, [5]=quantidade de transações.
+     */
+    @Query("""
+        SELECT c.id, c.name, c.color, c.icon, SUM(t.amountInCents), COUNT(t)
+        FROM Transaction t
+        LEFT JOIN t.category c
+        WHERE t.account.user.id = :userId
+        AND t.transactionType = :type
+        AND t.transactionDate >= :startDate
+        AND t.transactionDate < :endDate
+        GROUP BY c.id, c.name, c.color, c.icon
+        """)
+    List<Object[]> sumByCategory(
+        @Param("userId") UUID userId,
+        @Param("type") String type,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Receitas e despesas por mês no intervalo [startDate, endDate).
+     * Linha: [0]=ano, [1]=mês, [2]=tipo (CREDIT/DEBIT), [3]=total em centavos.
+     * Só devolve meses com movimento; o service completa os demais com 0.
+     */
+    @Query("""
+        SELECT YEAR(t.transactionDate), MONTH(t.transactionDate), t.transactionType, SUM(t.amountInCents)
+        FROM Transaction t
+        WHERE t.account.user.id = :userId
+        AND t.transactionDate >= :startDate
+        AND t.transactionDate < :endDate
+        AND t.transactionType IN ('CREDIT', 'DEBIT')
+        GROUP BY YEAR(t.transactionDate), MONTH(t.transactionDate), t.transactionType
+        """)
+    List<Object[]> sumByMonthAndType(
+        @Param("userId") UUID userId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Efeito no saldo da conta de ORIGEM, por mês, a partir de startDate (sem limite superior,
+     * para incluir transações com data futura).
+     * CREDIT soma; DEBIT e TRANSFER (saída) subtraem.
+     * Linha: [0]=id da conta, [1]=ano, [2]=mês, [3]=efeito em centavos (pode ser negativo).
+     */
+    @Query("""
+        SELECT t.account.id, YEAR(t.transactionDate), MONTH(t.transactionDate),
+               SUM(CASE WHEN t.transactionType = 'CREDIT' THEN t.amountInCents
+                        ELSE -t.amountInCents END)
+        FROM Transaction t
+        WHERE t.account.user.id = :userId
+        AND t.transactionDate >= :startDate
+        GROUP BY t.account.id, YEAR(t.transactionDate), MONTH(t.transactionDate)
+        """)
+    List<Object[]> sumSourceEffects(
+        @Param("userId") UUID userId,
+        @Param("startDate") LocalDateTime startDate
+    );
+
+    /**
+     * Efeito no saldo da conta de DESTINO das transferências, por mês, a partir de startDate.
+     * Linha: [0]=id da conta destino, [1]=ano, [2]=mês, [3]=total recebido em centavos.
+     */
+    @Query("""
+        SELECT t.destinationAccount.id, YEAR(t.transactionDate), MONTH(t.transactionDate),
+               SUM(t.amountInCents)
+        FROM Transaction t
+        WHERE t.account.user.id = :userId
+        AND t.transactionType = 'TRANSFER'
+        AND t.destinationAccount IS NOT NULL
+        AND t.transactionDate >= :startDate
+        GROUP BY t.destinationAccount.id, YEAR(t.transactionDate), MONTH(t.transactionDate)
+        """)
+    List<Object[]> sumIncomingTransfers(
+        @Param("userId") UUID userId,
+        @Param("startDate") LocalDateTime startDate
+    );
 }
