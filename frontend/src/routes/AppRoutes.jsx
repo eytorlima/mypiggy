@@ -15,6 +15,7 @@ import { GoalsPage } from '../pages/Goals/GoalsPage';
 import { ActionsPage } from '../pages/Actions/ActionsPage';
 import { AccountsPage } from '../pages/Accounts/AccountsPage';
 import { CategoriesPage } from '../pages/Categories/CategoriesPage';
+import { ReportsPage } from '../pages/Reports/ReportsPage';
 
 export function AppRoutes() {
   return (
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />

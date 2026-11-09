@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAccounts, getSummary } from '../../services/accountService';
 import { getMonthlySummary } from '../../services/transactionService';
@@ -61,6 +62,7 @@ export function DashboardPage() {
         <p className="text-sm text-gray-400">Aqui está o resumo das suas finanças.</p>
       </div>
 
+
       {loading ? (
         <SkeletonCard height="h-36" />
       ) : (
@@ -70,6 +72,7 @@ export function DashboardPage() {
           monthlyExpense={summary.monthlyExpense}
         />
       )}
+     
 
       {loading ? (
         <SkeletonCard height="h-36" />

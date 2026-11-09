@@ -2,14 +2,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import HomeOutlined from '@mui/icons-material/HomeOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AddIcon from '@mui/icons-material/Add';
-import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
+import BarChart from '@mui/icons-material/BarChart';
 import CurrencyBitcoinIcon from '@mui/icons-material/CurrencyBitcoin';
 
 const navItems = [
-    { label: 'Home',        icon: <HomeOutlined />,     path: '/dashboard'      },
+    { label: 'Início',        icon: <HomeOutlined />,     path: '/dashboard'      },
     { label: 'Transações',  icon: <ReceiptLongIcon />,  path: '/transactions'   },
     { label: 'FAB',         icon: null,                 path: null              },
-    { label: 'Metas',      icon: <EmojiEventsOutlinedIcon />,     path: '/goals'          },
+    { label: 'Relatórios',      icon: <BarChart />,     path: '/reports'          },
     { label: 'Ações',       icon: <CurrencyBitcoinIcon />,     path: '/actions'        }
 ];
 

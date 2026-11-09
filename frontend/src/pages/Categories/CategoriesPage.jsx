@@ -144,7 +144,7 @@ export function CategoriesPage() {
           aria-label="Voltar"
           className="absolute left-0 p-2 text-gray-500 hover:text-gray-700 hover:cursor-pointer"
         >
-          <ArrowBackOutlined fontSize="small" />
+          <ArrowBackOutlined fontSize="small" /> Voltar
         </button>
 
         <h2 className="font-bold text-gray-700">Categorias</h2>
@@ -156,7 +156,7 @@ export function CategoriesPage() {
           hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
           <AddOutlined fontSize="small" />
-          Nova
+          Nova categoria
         </button>
       </div>
 
@@ -172,7 +172,7 @@ export function CategoriesPage() {
         <>
           {/* Minhas categorias */}
           <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-gray-500 px-1">Minhas categorias</h3>
+            <h3 className="mt-8 text-sm font-semibold text-gray-500 px-1">Minhas categorias</h3>
 
             {custom.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
