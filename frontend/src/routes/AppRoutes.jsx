@@ -14,6 +14,7 @@ import { TransactionsPage } from '../pages/Transactions/TransactionsPage';
 import { GoalsPage } from '../pages/Goals/GoalsPage';
 import { ActionsPage } from '../pages/Actions/ActionsPage';
 import { AccountsPage } from '../pages/Accounts/AccountsPage';
+import { CategoriesPage } from '../pages/Categories/CategoriesPage';
 
 export function AppRoutes() {
   return (
@@ -33,6 +34,7 @@ export function AppRoutes() {
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/actions" element={<ActionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

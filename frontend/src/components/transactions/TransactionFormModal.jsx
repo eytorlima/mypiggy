@@ -224,7 +224,7 @@ export function TransactionFormModal({
     setApiError('');
     try {
       const transfer = data.transactionType === 'TRANSFER';
-      const transferCategory = categories.find((c) => c.icon === 'transfer');
+      const transferCategory = categories.find((c) => c.icon === 'transfer' && c.isDefault);
       const recurring = !transfer && data.isRecurring;
 
       const payload = {

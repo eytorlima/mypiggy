@@ -14,6 +14,7 @@ import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
 import CardGiftcardOutlined from '@mui/icons-material/CardGiftcardOutlined';
 import SwapHorizOutlined from '@mui/icons-material/SwapHorizOutlined';
 import MoreHorizOutlined from '@mui/icons-material/MoreHorizOutlined';
+import { colorMap } from './accountUtils';
 
 // Chave do ícone (campo `icon` da categoria no back-end) -> elemento MUI
 export const categoryIconMap = {
@@ -36,9 +37,15 @@ export const categoryIconMap = {
 };
 
 // O back-end ainda não tem campo "tipo" na categoria.
-// Solução temporária: separamos pelo ícone.
+// Solução temporária: o TIPO da categoria é definido pelo ÍCONE.
 // TODO: quando a categoria tiver um campo de tipo, remover isto e filtrar por ele.
-const INCOME_ICONS = ['briefcase', 'laptop', 'trending', 'gift'];
+export const INCOME_ICONS = ['briefcase', 'laptop', 'trending', 'gift'];
+export const EXPENSE_ICONS = [
+  'utensils', 'car', 'home', 'heart', 'school',
+  'smile', 'shirt', 'repeat', 'pet', 'tax',
+];
+// Aparece tanto em receitas quanto em despesas
+export const NEUTRAL_ICONS = ['other'];
 
 /**
  * Categorias válidas para o tipo de transação.
@@ -57,4 +64,14 @@ export function filterCategoriesByType(categories, type) {
     if (type === 'TRANSFER') return isTransfer;
     return true;
   });
+}
+
+/**
+ * Cor de fundo (hex) de uma categoria.
+ * Aceita a chave do colorMap ('green') ou um hex direto ('#22c55e').
+ */
+export function resolveCategoryColor(color) {
+  if (colorMap[color]) return colorMap[color];
+  if (typeof color === 'string' && color.startsWith('#')) return color;
+  return colorMap.gray;
 }
