@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAccounts, getSummary } from '../../services/accountService';
+import { getAccounts } from '../../services/accountService';
 import { getMonthlySummary } from '../../services/transactionService';
 import { BalanceCard } from '../../components/ui/BalanceCard';
 import { AccountsSection } from '../../components/ui/AccountSection';
@@ -11,47 +11,49 @@ const EMPTY_MONTHLY = { monthlyIncome: 0, monthlyExpense: 0 };
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { refreshKey } = useOutletContext(); // muda quando uma transação é salva pelo FAB
 
   const [accounts, setAccounts] = useState([]);
   const [summary, setSummary] = useState({ totalBalance: 0, ...EMPTY_MONTHLY });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // true só na 1ª carga
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false; // evita que uma resposta antiga sobrescreva a nova
+
     async function loadDashboard() {
       try {
-        setLoading(true);
         setError('');
 
-        // Contas, saldo total (soma das contas) e resumo mensal em paralelo
-        const [accountsData, totalBalance, monthly] = await Promise.all([
-          getAccounts().catch(() => []),
-          getSummary().catch(() => null),
+        // Contas e resumo mensal em paralelo
+        const [accountsData, monthly] = await Promise.all([
+          getAccounts(),
           getMonthlySummary().catch(() => EMPTY_MONTHLY),
         ]);
 
-        const list = accountsData || [];
+        if (cancelled) return;
 
-        // Fallback: se o endpoint falhar, soma localmente
-        const total =
-          totalBalance ??
-          list.reduce((sum, a) => sum + (a.balanceInCents || 0), 0);
+        const list = accountsData || [];
 
         setAccounts(list);
         setSummary({
-          totalBalance: total,
+          // Saldo total = soma das contas exibidas (sempre consistente com os cards)
+          totalBalance: list.reduce((sum, a) => sum + (a.balanceInCents || 0), 0),
           monthlyIncome: monthly?.monthlyIncome ?? 0,
           monthlyExpense: monthly?.monthlyExpense ?? 0,
         });
       } catch {
-        setError('Não foi possível carregar o dashboard.');
+        if (!cancelled) setError('Não foi possível carregar o dashboard.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadDashboard();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -62,7 +64,6 @@ export function DashboardPage() {
         <p className="text-sm text-gray-400">Aqui está o resumo das suas finanças.</p>
       </div>
 
-
       {loading ? (
         <SkeletonCard height="h-36" />
       ) : (
@@ -72,7 +73,6 @@ export function DashboardPage() {
           monthlyExpense={summary.monthlyExpense}
         />
       )}
-     
 
       {loading ? (
         <SkeletonCard height="h-36" />

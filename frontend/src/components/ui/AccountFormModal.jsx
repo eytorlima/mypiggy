@@ -38,7 +38,7 @@ const schema = z.object({
 
 const EMPTY_VALUES = {
   name: '',
-  accountType: 'WALLET',
+  accountType: '',
   balance: '0,00',
   isDebt: false,
   color: 'green',
