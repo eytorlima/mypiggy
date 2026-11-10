@@ -141,9 +141,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
         AND t.destinationAccount IS NOT NULL
         AND t.transactionDate >= :startDate
         GROUP BY t.destinationAccount.id, YEAR(t.transactionDate), MONTH(t.transactionDate)
-        """)
+    """)
     List<Object[]> sumIncomingTransfers(
         @Param("userId") UUID userId,
         @Param("startDate") LocalDateTime startDate
     );
+
+    @Query("""
+        SELECT t FROM Transaction t
+        JOIN FETCH t.account a
+        LEFT JOIN FETCH t.category
+        LEFT JOIN FETCH t.destinationAccount
+        WHERE a.user.id = :userId
+        AND t.transactionDate >= :startDate
+        AND t.transactionDate < :endDate
+        ORDER BY t.transactionDate ASC, t.createdAt ASC
+    """)
+    List<Transaction> findForExport(@Param("userId") UUID userId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }

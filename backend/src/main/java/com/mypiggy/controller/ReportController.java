@@ -3,8 +3,13 @@ package com.mypiggy.controller;
 import com.mypiggy.dto.ApiResponse;
 import com.mypiggy.dto.ReportResponseDTO;
 import com.mypiggy.model.User;
+import com.mypiggy.service.ExportService;
 import com.mypiggy.service.ReportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +27,7 @@ import java.util.UUID;
 public class ReportController {
 
     private final ReportService reportService;
+    private final ExportService exportService;
 
     // Gastos (ou receitas) agrupados por categoria: alimenta o gráfico de pizza/colunas
     // GET /api/reports/by-category?month=2026-11&type=DEBIT
@@ -56,5 +64,49 @@ public class ReportController {
         ReportResponseDTO.BalanceHistory history =
                 reportService.getBalanceHistory(user.getId(), accountId, months);
         return ResponseEntity.ok(ApiResponse.success("Histórico de saldo gerado", history));
+    }
+
+    // Extrato do período em planilha
+    // GET /api/reports/export/csv?startDate=2026-11-01&endDate=2026-11-30
+    //
+    // Os parâmetros são opcionais aqui de propósito: se faltarem, o service responde 400 com
+    // mensagem clara (um parâmetro obrigatório ausente cairia no handler genérico, como 500).
+    // Também não há "produces": se houvesse, a resposta de ERRO (JSON) seria recusada.
+    @GetMapping("/export/csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        byte[] file = exportService.generateCsv(user.getId(), startDate, endDate);
+        return download(file, MediaType.parseMediaType("text/csv;charset=UTF-8"),
+                fileName(startDate, endDate, "csv"));
+    }
+
+    // Relatório do período em PDF
+    // GET /api/reports/export/pdf?startDate=2026-11-01&endDate=2026-11-30
+    @GetMapping("/export/pdf")
+    public ResponseEntity<byte[]> exportPdf(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        byte[] file = exportService.generatePdf(user.getId(), startDate, endDate);
+        return download(file, MediaType.APPLICATION_PDF, fileName(startDate, endDate, "pdf"));
+    }
+
+    private static String fileName(LocalDate startDate, LocalDate endDate, String extension) {
+        return "mypiggy-extrato-" + startDate + "_" + endDate + "." + extension;
+    }
+
+    // "attachment" faz o navegador baixar o arquivo em vez de tentar exibi-lo
+    private static ResponseEntity<byte[]> download(byte[] file, MediaType type, String filename) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename, StandardCharsets.UTF_8)
+                                .build().toString())
+                .contentType(type)
+                .contentLength(file.length)
+                .body(file);
     }
 }
