@@ -5,6 +5,7 @@ import CategoryPieChart from '../../components/reports/CategoryPieChart';
 import MonthlyBarChart from '../../components/reports/MonthlyBarChart';
 import MonthSelector from '../../components/reports/MonthSelector';
 import SummaryCards from '../../components/reports/SummaryCards';
+import ExportButtons from '../../components/reports/ExportButtons';
 import { getByCategory, getMonthly } from '../../services/reportService';
 import { assignCategoryColors, keyOf } from '../../utils/categoryColors';
 import { formatBRL } from '../../utils/formatCurrency';
@@ -245,6 +246,8 @@ export function ReportsPage() {
           )}
         </section>
       </div>
+
+      <ExportButtons />
     </div>
   );
 }

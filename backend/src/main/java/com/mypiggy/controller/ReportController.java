@@ -3,6 +3,7 @@ package com.mypiggy.controller;
 import com.mypiggy.dto.ApiResponse;
 import com.mypiggy.dto.ReportResponseDTO;
 import com.mypiggy.model.User;
+import com.mypiggy.service.ExportFilter;
 import com.mypiggy.service.ExportService;
 import com.mypiggy.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -66,32 +68,42 @@ public class ReportController {
         return ResponseEntity.ok(ApiResponse.success("Histórico de saldo gerado", history));
     }
 
-    // Extrato do período em planilha
+    // Extrato do período em planilha, com filtros opcionais
     // GET /api/reports/export/csv?startDate=2026-11-01&endDate=2026-11-30
+    //     &types=CREDIT,DEBIT&categoryIds=1,2&accountIds=uuid1,uuid2
     //
-    // Os parâmetros são opcionais aqui de propósito: se faltarem, o service responde 400 com
-    // mensagem clara (um parâmetro obrigatório ausente cairia no handler genérico, como 500).
+    // Sem types/categoryIds/accountIds = extrato completo. Listas vão separadas por vírgula.
+    // Os parâmetros de data são opcionais aqui de propósito: se faltarem, o service responde 400
+    // com mensagem clara (um parâmetro obrigatório ausente cairia no handler genérico, como 500).
     // Também não há "produces": se houvesse, a resposta de ERRO (JSON) seria recusada.
     @GetMapping("/export/csv")
     public ResponseEntity<byte[]> exportCsv(
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) List<Integer> categoryIds,
+            @RequestParam(required = false) List<UUID> accountIds) {
 
-        byte[] file = exportService.generateCsv(user.getId(), startDate, endDate);
+        ExportFilter filter = ExportFilter.of(types, categoryIds, accountIds);
+        byte[] file = exportService.generateCsv(user.getId(), startDate, endDate, filter);
         return download(file, MediaType.parseMediaType("text/csv;charset=UTF-8"),
                 fileName(startDate, endDate, "csv"));
     }
 
-    // Relatório do período em PDF
+    // Relatório do período em PDF (mesmos parâmetros do CSV)
     // GET /api/reports/export/pdf?startDate=2026-11-01&endDate=2026-11-30
     @GetMapping("/export/pdf")
     public ResponseEntity<byte[]> exportPdf(
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) List<Integer> categoryIds,
+            @RequestParam(required = false) List<UUID> accountIds) {
 
-        byte[] file = exportService.generatePdf(user.getId(), startDate, endDate);
+        ExportFilter filter = ExportFilter.of(types, categoryIds, accountIds);
+        byte[] file = exportService.generatePdf(user.getId(), startDate, endDate, filter);
         return download(file, MediaType.APPLICATION_PDF, fileName(startDate, endDate, "pdf"));
     }
 

@@ -74,11 +74,11 @@ export default function MonthlyBarChart({ report, months, onChangeMonths }) {
 
       {report && (
         <div className="mt-8 flex flex-wrap justify-around gap-3 text-sm">
-          <span className="text-red-600">
-            Total de despesas: <strong>{formatBRL(report.totalExpenseInCents)}</strong>
-          </span>
           <span className="text-green-600">
             Total de receitas: <strong>{formatBRL(report.totalIncomeInCents)}</strong>
+          </span>
+          <span className="text-red-600">
+            Total de despesas: <strong>{formatBRL(report.totalExpenseInCents)}</strong>
           </span>
         </div>
       )}

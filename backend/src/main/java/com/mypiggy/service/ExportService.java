@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Exportação das transações de um período em CSV (planilha) e PDF (relatório).
@@ -85,8 +86,8 @@ public class ExportService {
      * Valor: receita positiva, despesa negativa; transferência sem sinal (veja a coluna Tipo).
      */
     @Transactional(readOnly = true)
-    public byte[] generateCsv(UUID userId, LocalDate startDate, LocalDate endDate) {
-        List<Transaction> transactions = loadTransactions(userId, startDate, endDate);
+    public byte[] generateCsv(UUID userId, LocalDate startDate, LocalDate endDate, ExportFilter filter) {
+        List<Transaction> transactions = loadTransactions(userId, startDate, endDate, filter);
 
         CSVFormat format = CSVFormat.DEFAULT.builder()
                 .setDelimiter(';')
@@ -133,8 +134,8 @@ public class ExportService {
     /* ------------------------------------------------------------------ */
 
     @Transactional(readOnly = true)
-    public byte[] generatePdf(UUID userId, LocalDate startDate, LocalDate endDate) {
-        List<Transaction> transactions = loadTransactions(userId, startDate, endDate);
+    public byte[] generatePdf(UUID userId, LocalDate startDate, LocalDate endDate, ExportFilter filter) {
+        List<Transaction> transactions = loadTransactions(userId, startDate, endDate, filter);
 
         long income = sumByType(transactions, "CREDIT");
         long expense = sumByType(transactions, "DEBIT");
@@ -157,6 +158,12 @@ public class ExportService {
             period.setSpacingBefore(4);
             document.add(period);
 
+            if (!filter.isEmpty()) {
+                Paragraph filters = new Paragraph("Filtros aplicados: " + describe(filter), SMALL_FONT);
+                filters.setSpacingBefore(2);
+                document.add(filters);
+            }
+
             // Resumo
             PdfPTable summary = new PdfPTable(3);
             summary.setWidthPercentage(100);
@@ -173,7 +180,9 @@ public class ExportService {
             document.add(note);
 
             if (transactions.isEmpty()) {
-                Paragraph empty = new Paragraph("Nenhuma transação encontrada no período.", TEXT_FONT);
+                Paragraph empty = new Paragraph(filter.isEmpty()
+                        ? "Nenhuma transação encontrada no período."
+                        : "Nenhuma transação encontrada para o período e os filtros selecionados.", TEXT_FONT);
                 empty.setSpacingBefore(20);
                 document.add(empty);
             } else {
@@ -327,13 +336,34 @@ public class ExportService {
     /* Utilitários                                                         */
     /* ------------------------------------------------------------------ */
 
-    private List<Transaction> loadTransactions(UUID userId, LocalDate startDate, LocalDate endDate) {
+    private List<Transaction> loadTransactions(UUID userId, LocalDate startDate, LocalDate endDate,
+                                               ExportFilter filter) {
         validatePeriod(startDate, endDate);
 
         // Intervalo semiaberto [início do 1º dia, início do dia seguinte ao último):
         // uma transação à meia-noite do dia seguinte não pode entrar no relatório
-        return transactionRepository.findForExport(
+        List<Transaction> all = transactionRepository.findForExport(
                 userId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
+
+        // Os filtros são aplicados em memória: a consulta já traz só as transações DO USUÁRIO
+        // no período, então IDs de outro usuário simplesmente não casam com nada
+        return all.stream().filter(filter::matches).toList();
+    }
+
+    // Texto do cabeçalho do PDF: nomes dos tipos e contagem de categorias/contas escolhidas
+    private static String describe(ExportFilter filter) {
+        List<String> parts = new ArrayList<>();
+        if (!filter.types().isEmpty()) {
+            parts.add("tipos (" + filter.types().stream().sorted()
+                    .map(ExportService::typeLabel).collect(Collectors.joining(", ")) + ")");
+        }
+        if (!filter.categoryIds().isEmpty()) {
+            parts.add(filter.categoryIds().size() + " categoria(s)");
+        }
+        if (!filter.accountIds().isEmpty()) {
+            parts.add(filter.accountIds().size() + " conta(s)");
+        }
+        return String.join("; ", parts);
     }
 
     private static void validatePeriod(LocalDate startDate, LocalDate endDate) {
