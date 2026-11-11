@@ -31,6 +31,8 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponseDTO create(TransactionRequestDTO request, UUID userId) {
+        rejectPiggyType(request.getTransactionType());
+
         Account account = accountRepository.findByIdAndUserId(request.getAccountId(), userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
 
@@ -95,6 +97,9 @@ public class TransactionService {
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
+        rejectPiggyTransaction(transaction);
+        rejectPiggyType(request.getTransactionType());
+        
         // Reverte o efeito anterior no saldo
         revertBalanceEffect(
                 transaction.getAccount(),
@@ -153,6 +158,8 @@ public class TransactionService {
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
+        rejectPiggyTransaction(transaction);
+        
         // Reverte o efeito no saldo antes de deletar
         revertBalanceEffect(
                 transaction.getAccount(),
@@ -216,6 +223,19 @@ public class TransactionService {
         if ("TRANSFER".equals(request.getTransactionType())
                 && request.getDestinationAccountId() == null) {
             throw new ValidationException("Transferência requer conta de destino");
+        }
+    }
+
+        // Transações PIGGY_* nascem só nas movimentações do porquinho
+    private void rejectPiggyType(String type) {
+        if (type != null && type.startsWith("PIGGY_")) {
+            throw new ValidationException("Use a tela de Metas para guardar ou retirar dinheiro de um porquinho");
+        }
+    }
+
+    private void rejectPiggyTransaction(Transaction transaction) {
+        if (transaction.getTransactionType().startsWith("PIGGY_")) {
+            throw new ValidationException("Esta transação foi gerada por um porquinho e não pode ser alterada ou excluída aqui");
         }
     }
 

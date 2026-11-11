@@ -111,12 +111,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     /**
      * Efeito no saldo da conta de ORIGEM, por mês, a partir de startDate (sem limite superior,
      * para incluir transações com data futura).
-     * CREDIT soma; DEBIT e TRANSFER (saída) subtraem.
+     * CREDIT e piggy somam; DEBIT e TRANSFER (saída) subtraem.
      * Linha: [0]=id da conta, [1]=ano, [2]=mês, [3]=efeito em centavos (pode ser negativo).
      */
     @Query("""
         SELECT t.account.id, YEAR(t.transactionDate), MONTH(t.transactionDate),
-               SUM(CASE WHEN t.transactionType = 'CREDIT' THEN t.amountInCents
+               SUM(CASE WHEN t.transactionType IN ('CREDIT', 'PIGGY_WITHDRAWAL') THEN t.amountInCents
                         ELSE -t.amountInCents END)
         FROM Transaction t
         WHERE t.account.user.id = :userId

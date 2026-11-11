@@ -41,8 +41,8 @@ public class Transaction {
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
-    @Column(name = "transaction_type", nullable = false, length = 10)
-    private String transactionType; // CREDIT, DEBIT, TRANSFER
+    @Column(name = "transaction_type", nullable = false, length = 20)
+    private String transactionType; // CREDIT, DEBIT, TRANSFER, PIGGY_DEPOSIT, PIGGY_WITHDRAWAL
 
     @Column(name = "is_recurring", nullable = false)
     private Boolean isRecurring = false;

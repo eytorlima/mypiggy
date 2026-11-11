@@ -11,6 +11,7 @@ import com.mypiggy.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,7 +20,11 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final PiggyBankService piggyBankService;
 
+    // @Transactional: usuário e reserva de emergência são salvos juntos. Se a reserva falhar,
+    // o cadastro inteiro é desfeito (não fica usuário sem reserva)
+    @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
         
         if (userRepository.existsByEmail(request.getEmail())){
@@ -39,6 +44,9 @@ public class AuthService {
         user.setBirthDate(request.getBirthDate());
 
         User savedUser = userRepository.save(user);
+
+        // Todo usuário nasce com uma Reserva de emergência
+        piggyBankService.createEmergencyFor(savedUser);
 
         String token = jwtService.generateToken(savedUser.getEmail());
 

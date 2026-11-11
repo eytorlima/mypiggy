@@ -396,6 +396,8 @@ public class ExportService {
             case "CREDIT" -> "Receita";
             case "DEBIT" -> "Despesa";
             case "TRANSFER" -> "Transferência";
+            case "PIGGY_DEPOSIT" -> "Guardado no porquinho";
+            case "PIGGY_WITHDRAWAL" -> "Retirado do porquinho";
             default -> type;
         };
     }
