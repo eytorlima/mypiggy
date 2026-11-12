@@ -157,6 +157,7 @@ export function TransactionFormModal({
   categories,
   onClose,
   onSuccess,
+  onEndRecurrence,
 }) {
   const isEdit = !!transaction;
 
@@ -855,7 +856,7 @@ export function TransactionFormModal({
 
           {/* Recorrência (somente receita e despesa) */}
 
-          {!isTransfer && (
+          {!isTransfer && !(isEdit && transaction?.recurrenceSeriesId) && (
 
             <div className="flex flex-col gap-2">
 
@@ -905,6 +906,31 @@ export function TransactionFormModal({
 
             </div>
 
+          )}
+
+          {/* Transação de uma série: só dá para encerrar (não editar) a recorrência */}
+          {isEdit && transaction?.recurrenceSeriesId && (
+            <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+              {transaction.recurrenceActive !== false ? (
+                <>
+                  <p className="text-sm text-gray-600">
+                    Esta transação faz parte de uma recorrência ativa.
+                  </p>
+                  {onEndRecurrence && (
+                    <button
+                      type="button"
+                      onClick={() => onEndRecurrence(transaction)}
+                      className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-amber-700 bg-amber-50
+                                 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors hover:cursor-pointer"
+                    >
+                      Encerrar recorrência
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Recorrência encerrada.</p>
+              )}
+            </div>
           )}
 
 

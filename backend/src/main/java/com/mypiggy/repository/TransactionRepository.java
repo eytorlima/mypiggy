@@ -15,15 +15,24 @@ import java.util.UUID;
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
     // Busca transações com filtros opcionais
+        // Busca transações com filtros opcionais e pesquisa de texto (search já vem como %termo%, minúsculo)
     @Query(value = """
         SELECT t.* FROM transactions t
         JOIN accounts a ON a.id = t.account_id
+        LEFT JOIN accounts da ON da.id = t.destination_account_id
+        LEFT JOIN categories c ON c.id = t.category_id
         WHERE a.user_id = CAST(:userId AS uuid)
         AND (:accountId IS NULL OR t.account_id = CAST(:accountId AS uuid))
         AND (:type IS NULL OR t.transaction_type = :type)
         AND (:categoryId IS NULL OR t.category_id = :categoryId)
         AND (CAST(:startDate AS timestamp) IS NULL OR t.transaction_date >= CAST(:startDate AS timestamp))
         AND (CAST(:endDate AS timestamp) IS NULL OR t.transaction_date <= CAST(:endDate AS timestamp))
+        AND (CAST(:search AS text) IS NULL
+             OR LOWER(COALESCE(t.description, '')) LIKE CAST(:search AS text)
+             OR LOWER(a.name) LIKE CAST(:search AS text)
+             OR LOWER(COALESCE(da.name, '')) LIKE CAST(:search AS text)
+             OR LOWER(COALESCE(c.name, '')) LIKE CAST(:search AS text)
+             OR LOWER(COALESCE(t.tags, '')) LIKE CAST(:search AS text))
         ORDER BY t.transaction_date DESC
         """, nativeQuery = true)
     List<Transaction> findWithFilters(
@@ -32,8 +41,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
         @Param("type") String type,
         @Param("categoryId") Integer categoryId,
         @Param("startDate") LocalDateTime startDate,
-        @Param("endDate") LocalDateTime endDate
+        @Param("endDate") LocalDateTime endDate,
+        @Param("search") String search
     );
+
+    // Todas as ocorrências geradas a partir de uma original (da mais antiga à mais nova)
+    List<Transaction> findByRecurrenceParentOrderByTransactionDateAsc(Transaction parent);
 
     // Resumo mensal: total de CREDIT e DEBIT
     @Query("""

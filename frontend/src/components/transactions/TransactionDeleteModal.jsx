@@ -2,10 +2,17 @@ import { useEffect, useState } from 'react';
 import { formatBRL } from '../../utils/formatCurrency';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 
+const SCOPE_OPTIONS = [
+  { value: 'ONE', label: 'Só esta transação', hint: 'As demais da série são mantidas.' },
+  { value: 'SERIES', label: 'Toda a série', hint: 'Remove todas as ocorrências e para de gerar novas.' },
+];
+
+// onConfirm recebe o escopo: 'ONE' (só esta) ou 'SERIES' (toda a série)
 export function TransactionDeleteModal({ open, transaction, loading, onClose, onConfirm }) {
   // mounted: está no DOM | visible: dispara a transição
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
+  const [scope, setScope] = useState('ONE');
 
   // Guarda a última transação para o texto não sumir durante a animação de saída
   const [lastTransaction, setLastTransaction] = useState(transaction);
@@ -15,6 +22,7 @@ export function TransactionDeleteModal({ open, transaction, loading, onClose, on
 
   useEffect(() => {
     if (open) {
+      setScope('ONE'); // sempre começa na opção mais segura
       setMounted(true);
       const t = setTimeout(() => setVisible(true), 20);
       return () => clearTimeout(t);
@@ -36,6 +44,8 @@ export function TransactionDeleteModal({ open, transaction, loading, onClose, on
   const t = lastTransaction;
   const label = t?.description || t?.categoryName || 'esta transação';
   const isTransfer = t?.transactionType === 'TRANSFER';
+  const inSeries = Boolean(t?.recurrenceSeriesId);
+  const wholeSeries = inSeries && scope === 'SERIES';
 
   return (
     <div
@@ -53,13 +63,43 @@ export function TransactionDeleteModal({ open, transaction, loading, onClose, on
           <DeleteOutlineOutlined />
         </div>
 
-        <h2 className="text-lg font-bold text-gray-800">Excluir transação?</h2>
+        <h2 className="text-lg font-bold text-gray-800">
+          {wholeSeries ? 'Excluir série?' : 'Excluir transação?'}
+        </h2>
 
         <p className="mt-2 text-sm text-gray-600">
           <span className="font-semibold">{label}</span>
-          {t && <> ({formatBRL(t.amountInCents)})</>} será removida.
+          {t && <> ({formatBRL(t.amountInCents)})</>}{' '}
+          {wholeSeries ? 'e todas as suas repetições serão removidas.' : 'será removida.'}
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+
+        {inSeries && (
+          <div className="mt-4 flex flex-col gap-2 text-left">
+            {SCOPE_OPTIONS.map((opt) => (
+              <label
+                key={opt.value}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                  ${scope === opt.value ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:bg-gray-50'}`}
+              >
+                <input
+                  type="radio"
+                  name="delete-scope"
+                  value={opt.value}
+                  checked={scope === opt.value}
+                  disabled={loading}
+                  onChange={() => setScope(opt.value)}
+                  className="mt-1 accent-red-500"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-gray-700">{opt.label}</span>
+                  <span className="block text-xs text-gray-400">{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <p className="mt-3 text-xs text-gray-400">
           {isTransfer
             ? 'O valor volta para a conta de origem e sai da conta de destino.'
             : 'O saldo da conta será ajustado automaticamente.'}
@@ -78,7 +118,7 @@ export function TransactionDeleteModal({ open, transaction, loading, onClose, on
           <button
             type="button"
             disabled={loading}
-            onClick={onConfirm}
+            onClick={() => onConfirm(inSeries ? scope : 'ONE')}
             className="py-2.5 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600
                        disabled:opacity-50 transition-colors hover:cursor-pointer"
           >

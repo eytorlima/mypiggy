@@ -35,6 +35,8 @@ public class TransactionController {
                 .body(ApiResponse.success("Transação criada com sucesso", response));
     }
 
+    // GET /api/transactions?search=mercado&type=DEBIT&startDate=...
+    // search: procura em descrição, conta, conta de destino, categoria e tags
     @GetMapping
     public ResponseEntity<ApiResponse<List<TransactionResponseDTO>>> listAll(
             @AuthenticationPrincipal User user,
@@ -44,10 +46,11 @@ public class TransactionController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) String search) {
 
         List<TransactionResponseDTO> transactions = transactionService.listWithFilters(
-                user.getId(), accountId, type, categoryId, startDate, endDate);
+                user.getId(), accountId, type, categoryId, startDate, endDate, search);
 
         return ResponseEntity.ok(ApiResponse.success("Transações listadas com sucesso", transactions));
     }
@@ -62,13 +65,28 @@ public class TransactionController {
         return ResponseEntity.ok(ApiResponse.success("Transação atualizada com sucesso", updated));
     }
 
+    // DELETE /api/transactions/{id}?scope=ONE|SERIES  (padrão: ONE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable UUID id,
+            @RequestParam(defaultValue = "ONE") String scope,
             @AuthenticationPrincipal User user) {
 
-        transactionService.delete(id, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Transação excluída com sucesso", null));
+        transactionService.delete(id, user.getId(), scope);
+        String message = "SERIES".equalsIgnoreCase(scope)
+                ? "Série de transações excluída com sucesso"
+                : "Transação excluída com sucesso";
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
+
+    // Encerra a recorrência (mantém o histórico, para de gerar novas)
+    @PatchMapping("/{id}/recurrence/deactivate")
+    public ResponseEntity<ApiResponse<TransactionResponseDTO>> deactivateRecurrence(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user) {
+
+        TransactionResponseDTO updated = transactionService.deactivateRecurrence(id, user.getId());
+        return ResponseEntity.ok(ApiResponse.success("Recorrência encerrada com sucesso", updated));
     }
 
     @GetMapping("/summary")

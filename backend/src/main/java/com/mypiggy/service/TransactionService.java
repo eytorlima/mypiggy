@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -97,13 +98,24 @@ public class TransactionService {
         return toResponseDTO(saved);
     }
 
+    // Mantido para quem chama sem pesquisa
     @Transactional(readOnly = true)
     public List<TransactionResponseDTO> listWithFilters(
             UUID userId, UUID accountId, String type,
             Integer categoryId, LocalDateTime startDate, LocalDateTime endDate) {
 
+        return listWithFilters(userId, accountId, type, categoryId, startDate, endDate, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponseDTO> listWithFilters(
+            UUID userId, UUID accountId, String type,
+            Integer categoryId, LocalDateTime startDate, LocalDateTime endDate,
+            String search) {
+
         return transactionRepository
-                .findWithFilters(userId, accountId, type, categoryId, startDate, endDate)
+                .findWithFilters(userId, accountId, type, categoryId, startDate, endDate,
+                        toLikePattern(search))
                 .stream()
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
@@ -154,9 +166,14 @@ public class TransactionService {
         transaction.setDescription(request.getDescription());
         transaction.setTransactionDate(request.getTransactionDate());
         transaction.setTransactionType(request.getTransactionType());
-        transaction.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
-        transaction.setRecurrencyType(request.getRecurrencyType());
         transaction.setTags(request.getTags());
+
+        // Quem faz parte de uma série não muda a recorrência pela edição:
+        // isso só acontece por "Encerrar recorrência" (evita quebrar a série sem querer)
+        if (!isSeriesMember(transaction)) {
+            transaction.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
+            transaction.setRecurrencyType(request.getRecurrencyType());
+        }
 
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -170,12 +187,34 @@ public class TransactionService {
         return toResponseDTO(updated);
     }
 
+    // Mantido para quem chama sem escopo (exclui só a transação)
     @Transactional
     public void delete(UUID transactionId, UUID userId) {
+        delete(transactionId, userId, "ONE");
+    }
+
+    /**
+     * @param scope "ONE" = só esta transação | "SERIES" = a série inteira (todas as ocorrências)
+     */
+    @Transactional
+    public void delete(UUID transactionId, UUID userId, String scope) {
         Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
         rejectPiggyTransaction(transaction);
+
+        boolean wholeSeries = "SERIES".equalsIgnoreCase(scope);
+        if (scope != null && !wholeSeries && !"ONE".equalsIgnoreCase(scope)) {
+            throw new ValidationException("Escopo inválido. Use ONE ou SERIES");
+        }
+
+        if (wholeSeries) {
+            deleteSeries(transaction);
+            return;
+        }
+
+        // Excluir só a original não pode deixar as demais órfãs: a mais antiga assume
+        promoteNextAsRoot(transaction);
 
         // Reverte o efeito no saldo antes de deletar
         revertBalanceEffect(
@@ -190,6 +229,26 @@ public class TransactionService {
         }
 
         transactionRepository.delete(transaction);
+    }
+
+    /**
+     * Encerra a recorrência: nada é apagado, mas a série deixa de gerar novas transações.
+     * Pode ser chamado a partir de qualquer transação da série (original ou gerada).
+     */
+    @Transactional
+    public TransactionResponseDTO deactivateRecurrence(UUID transactionId, UUID userId) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
+
+        Transaction root = rootOf(transaction);
+        if (root.getRecurrencyType() == null) {
+            throw new ValidationException("Esta transação não faz parte de uma recorrência");
+        }
+
+        root.setIsRecurring(false);
+        transactionRepository.save(root);
+
+        return toResponseDTO(transaction);
     }
 
     @Transactional(readOnly = true)
@@ -211,6 +270,22 @@ public class TransactionService {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Pesquisa                                                            */
+    /* ------------------------------------------------------------------ */
+
+    // "Mercado" -> "%mercado%". Escapa % e _ digitados pelo usuário para não virarem curinga.
+    private String toLikePattern(String search) {
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+        String escaped = search.trim().toLowerCase(Locale.ROOT)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Recorrência                                                         */
     /* ------------------------------------------------------------------ */
 
@@ -227,6 +302,16 @@ public class TransactionService {
                 && request.getTransactionDate().toLocalDate().isBefore(LocalDate.now().minusMonths(1))) {
             throw new ValidationException("Recorrência diária pode começar no máximo 1 mês atrás");
         }
+    }
+
+    // Raiz da série: a própria transação (original) ou o pai das cópias
+    private Transaction rootOf(Transaction t) {
+        return t.getRecurrenceParent() != null ? t.getRecurrenceParent() : t;
+    }
+
+    // Faz parte de uma série (ativa ou encerrada) se tem pai ou guarda o tipo de recorrência
+    private boolean isSeriesMember(Transaction t) {
+        return t.getRecurrenceParent() != null || t.getRecurrencyType() != null;
     }
 
     // Cria uma cópia para cada ocorrência entre a data original (exclusive) e hoje (inclusive)
@@ -253,8 +338,8 @@ public class TransactionService {
             copy.setDescription(original.getDescription());
             copy.setTransactionDate(next);
             copy.setTransactionType(original.getTransactionType());
-            copy.setIsRecurring(false); // só a original é a "série"; a cópia é um lançamento comum
-            copy.setRecurrencyType(null);
+            copy.setIsRecurring(false); // só a raiz da série guarda se está ativa
+            copy.setRecurrencyType(null); // o tipo é herdado da raiz
             copy.setTags(original.getTags());
             copy.setRecurrenceParent(original);
 
@@ -273,6 +358,52 @@ public class TransactionService {
             case "ANNUAL" -> start.plusYears(step);
             default -> throw new ValidationException("Tipo de recorrência inválido");
         };
+    }
+
+    // Exclui a série inteira, devolvendo o efeito de CADA ocorrência ao saldo da sua conta
+    private void deleteSeries(Transaction transaction) {
+        Transaction root = rootOf(transaction);
+
+        List<Transaction> series = new ArrayList<>();
+        series.add(root);
+        series.addAll(transactionRepository.findByRecurrenceParentOrderByTransactionDateAsc(root));
+
+        for (Transaction t : series) {
+            revertBalanceEffect(
+                    t.getAccount(),
+                    t.getDestinationAccount(),
+                    t.getTransactionType(),
+                    t.getAmountInCents()
+            );
+            accountRepository.save(t.getAccount());
+            if (t.getDestinationAccount() != null) {
+                accountRepository.save(t.getDestinationAccount());
+            }
+        }
+
+        transactionRepository.deleteAll(series);
+    }
+
+    // Se a transação é a raiz de uma série, a ocorrência mais antiga vira a nova raiz
+    // (herda o tipo e se está ativa) e as demais passam a apontar para ela
+    private void promoteNextAsRoot(Transaction removed) {
+        List<Transaction> children =
+                transactionRepository.findByRecurrenceParentOrderByTransactionDateAsc(removed);
+        if (children.isEmpty()) {
+            return;
+        }
+
+        Transaction newRoot = children.get(0);
+        newRoot.setIsRecurring(removed.getIsRecurring());
+        newRoot.setRecurrencyType(removed.getRecurrencyType());
+        newRoot.setRecurrenceParent(null);
+
+        for (int i = 1; i < children.size(); i++) {
+            children.get(i).setRecurrenceParent(newRoot);
+        }
+
+        transactionRepository.saveAll(children);
+        transactionRepository.flush(); // garante que os filhos saiam da raiz antes do delete
     }
 
     /* ------------------------------------------------------------------ */
@@ -342,6 +473,15 @@ public class TransactionService {
         dto.setRecurrencyType(t.getRecurrencyType());
         dto.setTags(t.getTags());
         dto.setCreatedAt(t.getCreatedAt());
+
+        // Série de recorrência: todas as transações dela (original ou geradas) mostram o mesmo
+        // tipo e o mesmo estado (ativa/encerrada), lidos da raiz
+        Transaction root = rootOf(t);
+        if (root.getRecurrencyType() != null) {
+            dto.setRecurrencyType(root.getRecurrencyType());
+            dto.setRecurrenceSeriesId(root.getId());
+            dto.setRecurrenceActive(Boolean.TRUE.equals(root.getIsRecurring()));
+        }
 
         if (t.getDestinationAccount() != null) {
             dto.setDestinationAccountId(t.getDestinationAccount().getId());

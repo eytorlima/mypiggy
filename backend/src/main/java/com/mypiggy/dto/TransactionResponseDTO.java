@@ -27,6 +27,8 @@ public class TransactionResponseDTO {
     private String transactionType;
     private Boolean isRecurring;
     private String recurrencyType;
+    private UUID recurrenceSeriesId;   // id da transação original da série (null = não recorrente)
+    private Boolean recurrenceActive;  // true = ainda gera novas | false = encerrada
     private String tags;
     private LocalDateTime createdAt;
 }

@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { SelectField } from '../ui/SelectField';
 import { toLocalDateTime } from '../../utils/dateUtils';
 import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import CloseOutlined from '@mui/icons-material/CloseOutlined';
 
 const TYPE_OPTIONS = [
   { value: '', label: 'Todos os tipos' },
@@ -17,10 +19,11 @@ export const DEFAULT_FILTERS = () => ({
   type: '',
   accountId: '',
   categoryId: '',
+  search: '',
 });
 
 /**
- * filters: { month: "YYYY-MM" | "", type, accountId, categoryId }
+ * filters: { month: "YYYY-MM" | "", type, accountId, categoryId, search }
  * onChange recebe o objeto de filtros completo e atualizado.
  */
 export function TransactionFilters({ filters, onChange, accounts, categories }) {
@@ -44,15 +47,54 @@ export function TransactionFilters({ filters, onChange, accounts, categories }) 
     onChange({ ...filters, [field]: value });
   }
 
+  // Ao começar a pesquisar, o mês é limpo para a busca valer em TODOS os períodos.
+  // Depois disso o usuário pode escolher um mês de novo (a busca respeita o mês).
+  function handleSearch(value) {
+    const startedSearching = !filters.search.trim() && value.trim();
+    onChange({
+      ...filters,
+      search: value,
+      month: startedSearching ? '' : filters.month,
+    });
+  }
+
   const defaults = DEFAULT_FILTERS();
   const isFiltered =
     filters.month !== defaults.month ||
     filters.type ||
     filters.accountId ||
-    filters.categoryId;
+    filters.categoryId ||
+    filters.search;
 
   return (
     <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm [&_label]:text-gray-700">
+      {/* Caixa de pesquisa */}
+      <div className="relative mb-3">
+        <SearchOutlined
+          fontSize="small"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          type="text"
+          value={filters.search}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Pesquisar por descrição, conta, categoria..."
+          aria-label="Pesquisar transações"
+          className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
+                     focus:outline-none focus:border-primary-500"
+        />
+        {filters.search && (
+          <button
+            type="button"
+            onClick={() => update('search', '')}
+            aria-label="Limpar pesquisa"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+          >
+            <CloseOutlined fontSize="small" />
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Mês</label>

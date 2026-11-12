@@ -27,8 +27,15 @@ export async function updateTransaction(id, data) {
   return response.data.data;
 }
 
-export async function deleteTransaction(id) {
-  await api.delete(`/transactions/${id}`);
+// scope: 'ONE' (só esta) ou 'SERIES' (toda a série recorrente)
+export async function deleteTransaction(id, scope = 'ONE') {
+  await api.delete(`/transactions/${id}`, { params: { scope } });
+}
+
+// Mantém as transações existentes, mas para de gerar novas
+export async function deactivateRecurrence(id) {
+  const response = await api.patch(`/transactions/${id}/recurrence/deactivate`);
+  return response.data.data;
 }
 
 export async function getMonthlySummary() {

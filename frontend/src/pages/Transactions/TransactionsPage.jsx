@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { getAccounts } from '../../services/accountService';
 import { getCategories } from '../../services/categoryService';
-import { getTransactions, deleteTransaction } from '../../services/transactionService';
+import { getTransactions, deleteTransaction, deactivateRecurrence } from '../../services/transactionService';
 import { TransactionFilters, DEFAULT_FILTERS } from '../../components/transactions/TransactionFilters';
 import { TransactionItem } from '../../components/transactions/TransactionItem';
 import { TransactionFormModal } from '../../components/transactions/TransactionFormModal';
 import { TransactionDeleteModal } from '../../components/transactions/TransactionDeleteModal';
+import { RecurrenceEndModal } from '../../components/transactions/RecurrenceEndModal';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
 import { formatBRL } from '../../utils/formatCurrency';
 import { monthRange, toLocalDateTime } from '../../utils/dateUtils';
@@ -41,6 +42,9 @@ export function TransactionsPage() {
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  // query = filtros "aplicados": é ela que dispara a busca (a digitação passa por debounce)
+  const [query, setQuery] = useState(filters);
+  const lastSearchRef = useRef(filters.search);
   const [reloadKey, setReloadKey] = useState(0);
 
   const [loading, setLoading] = useState(true);
@@ -54,6 +58,11 @@ export function TransactionsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Modal de encerrar recorrência
+  const [endOpen, setEndOpen] = useState(false);
+  const [endingTransaction, setEndingTransaction] = useState(null);
+  const [endLoading, setEndLoading] = useState(false);
 
   /* Contas e categorias: carregadas uma vez */
   async function loadAccounts() {
@@ -74,6 +83,19 @@ export function TransactionsPage() {
     loadAccounts();
   }, [refreshKey]);
 
+  /* Debounce: só a digitação espera 300ms; mês/tipo/conta/categoria aplicam na hora */
+  useEffect(() => {
+    if (filters.search === lastSearchRef.current) {
+      setQuery(filters);
+      return;
+    }
+    const t = setTimeout(() => {
+      lastSearchRef.current = filters.search;
+      setQuery(filters);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [filters]);
+
   /* Transações: recarregadas quando os filtros mudam ou após salvar/excluir */
   useEffect(() => {
     let cancelled = false; // evita que uma resposta antiga sobrescreva a nova
@@ -84,13 +106,14 @@ export function TransactionsPage() {
         setError('');
 
         const params = {
-          type: filters.type,
-          accountId: filters.accountId,
-          categoryId: filters.categoryId,
+          type: query.type,
+          accountId: query.accountId,
+          categoryId: query.categoryId,
+          search: query.search.trim(),
         };
 
-        if (filters.month) {
-          const [year, month] = filters.month.split('-').map(Number);
+        if (query.month) {
+          const [year, month] = query.month.split('-').map(Number);
           Object.assign(params, monthRange(year, month));
         }
 
@@ -111,7 +134,7 @@ export function TransactionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [filters, reloadKey, refreshKey]);
+  }, [query, reloadKey, refreshKey]);
 
   /* Agrupamento por dia (mais recente primeiro) */
   const groups = useMemo(() => {
@@ -174,12 +197,12 @@ export function TransactionsPage() {
     setDeletingTransaction(null);
   }
 
-  async function handleConfirmDelete() {
+  async function handleConfirmDelete(scope = 'ONE') {
     if (!deletingTransaction) return;
     try {
       setDeleteLoading(true);
       setError('');
-      await deleteTransaction(deletingTransaction.id);
+      await deleteTransaction(deletingTransaction.id, scope);
       handleCloseDelete();
       refresh();
     } catch (err) {
@@ -189,6 +212,34 @@ export function TransactionsPage() {
       setDeleteLoading(false);
     }
   }
+
+  function handleOpenEnd(transaction) {
+    setEndingTransaction(transaction);
+    setEndOpen(true);
+  }
+
+  function handleCloseEnd() {
+    setEndOpen(false);
+    setEndingTransaction(null);
+  }
+
+  async function handleConfirmEnd() {
+    if (!endingTransaction) return;
+    try {
+      setEndLoading(true);
+      setError('');
+      await deactivateRecurrence(endingTransaction.id);
+      handleCloseEnd();
+      refresh();
+    } catch (err) {
+      handleCloseEnd();
+      setError(err.response?.data?.message || 'Não foi possível encerrar a recorrência.');
+    } finally {
+      setEndLoading(false);
+    }
+  }
+
+  const isSearching = query.search.trim() !== '';
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -248,7 +299,9 @@ export function TransactionsPage() {
           <ReceiptLongOutlined className="text-gray-300" style={{ fontSize: 64 }} />
           <p className="text-gray-500 font-medium">Nenhuma transação encontrada</p>
           <p className="text-gray-400 text-sm">
-            Ajuste os filtros ou registre uma nova transação.
+            {isSearching
+              ? 'Nenhum resultado para a pesquisa. Tente outros termos.'
+              : 'Ajuste os filtros ou registre uma nova transação.'}
           </p>
           <button
             type="button"
@@ -272,6 +325,7 @@ export function TransactionsPage() {
                 transaction={t}
                 onEdit={() => handleOpenEdit(t)}
                 onDelete={() => handleOpenDelete(t)}
+                onEndRecurrence={() => handleOpenEnd(t)}
               />
             ))}
           </section>
@@ -286,6 +340,10 @@ export function TransactionsPage() {
         categories={categories}
         onClose={handleCloseForm}
         onSuccess={handleFormSuccess}
+        onEndRecurrence={(t) => {
+          handleCloseForm();
+          handleOpenEnd(t);
+        }}
       />
 
       <TransactionDeleteModal
@@ -294,6 +352,14 @@ export function TransactionsPage() {
         loading={deleteLoading}
         onClose={handleCloseDelete}
         onConfirm={handleConfirmDelete}
+      />
+
+      <RecurrenceEndModal
+        open={endOpen}
+        transaction={endingTransaction}
+        loading={endLoading}
+        onClose={handleCloseEnd}
+        onConfirm={handleConfirmEnd}
       />
     </div>
   );
