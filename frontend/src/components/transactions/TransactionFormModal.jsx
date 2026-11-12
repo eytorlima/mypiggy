@@ -11,6 +11,9 @@ import {
 import { InputField } from '../ui/InputField';
 import { SelectField } from '../ui/SelectField';
 
+import { RecurrenceConfirmModal } from './RecurrenceConfirmModal';
+import { missedOccurrences, oneMonthAgoInput } from '../../utils/recurrenceUtils';
+
 import {
   parseMoney,
   formatMoney,
@@ -159,6 +162,9 @@ export function TransactionFormModal({
 
   const [apiError, setApiError] = useState('');
 
+  const [pendingConfirm, setPendingConfirm] = useState(null); // { data, dates } aguardando o popup
+  const [confirming, setConfirming] = useState(false);
+
   // mounted: está no DOM | visible: está na posição final (dispara a transição)
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -170,6 +176,7 @@ export function TransactionFormModal({
     reset,
     setValue,
     clearErrors,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -405,8 +412,37 @@ export function TransactionFormModal({
     );
   }
 
+    // Passo antes de salvar: valida a recorrência diária e abre o popup de confirmação
+  function onSubmit(data) {
+    setApiError('');
 
-  async function onSubmit(data) {
+    const recurring = data.transactionType !== 'TRANSFER' && data.isRecurring;
+    if (!isEdit && recurring) {
+      if (data.recurrencyType === 'DAILY' && data.transactionDate < oneMonthAgoInput()) {
+        setError('transactionDate', {
+          message: 'Recorrência diária pode começar no máximo 1 mês atrás',
+        });
+        return;
+      }
+
+      const dates = missedOccurrences(data.transactionDate, data.recurrencyType, todayInput());
+      if (dates.length > 0) {
+        setPendingConfirm({ data, dates });
+        return;
+      }
+    }
+
+    return save(data);
+  }
+
+  async function handleConfirmRecurrence() {
+    setConfirming(true);
+    await save(pendingConfirm.data);
+    setConfirming(false);
+    setPendingConfirm(null);
+  }
+
+  async function save(data) {
     setApiError('');
 
     try {
@@ -898,6 +934,14 @@ export function TransactionFormModal({
         </form>
 
       </div>
+
+      <RecurrenceConfirmModal
+        dates={pendingConfirm?.dates}
+        recurrencyType={pendingConfirm?.data.recurrencyType}
+        loading={confirming}
+        onConfirm={handleConfirmRecurrence}
+        onCancel={() => setPendingConfirm(null)}
+      />
 
     </div>
   );

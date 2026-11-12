@@ -7,14 +7,19 @@ import { BalanceCard } from '../../components/ui/BalanceCard';
 import { AccountsSection } from '../../components/ui/AccountSection';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
 
-const EMPTY_MONTHLY = { monthlyIncome: 0, monthlyExpense: 0 };
+const EMPTY_MONTHLY = { CREDIT: 0, DEBIT: 0 };
 
 export function DashboardPage() {
   const { user } = useAuth();
   const { refreshKey } = useOutletContext(); // muda quando uma transação é salva pelo FAB
 
   const [accounts, setAccounts] = useState([]);
-  const [summary, setSummary] = useState({ totalBalance: 0, ...EMPTY_MONTHLY });
+  const [summary, setSummary] = useState({
+    totalBalance: 0,
+    monthlyIncome: 0,
+    monthlyExpense: 0,
+  });
+
   const [loading, setLoading] = useState(true); // true só na 1ª carga
   const [error, setError] = useState('');
 
@@ -39,8 +44,8 @@ export function DashboardPage() {
         setSummary({
           // Saldo total = soma das contas exibidas (sempre consistente com os cards)
           totalBalance: list.reduce((sum, a) => sum + (a.balanceInCents || 0), 0),
-          monthlyIncome: monthly?.monthlyIncome ?? 0,
-          monthlyExpense: monthly?.monthlyExpense ?? 0,
+          monthlyIncome: monthly?.CREDIT ?? 0,
+          monthlyExpense: monthly?.DEBIT ?? 0,
         });
       } catch {
         if (!cancelled) setError('Não foi possível carregar o dashboard.');

@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
+
+    // Teto de segurança para as ocorrências atrasadas geradas de uma só vez
+    private static final int MAX_BACKFILL_OCCURRENCES = 366;
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
@@ -55,14 +60,14 @@ public class TransactionService {
                     .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         }
 
-        // Aplica efeito no saldo
+        boolean recurring = isRecurringRequest(request);
+        if (recurring) {
+            validateRecurrence(request);
+        }
+
+        // Aplica o efeito da transação original no saldo
         applyBalanceEffect(account, destinationAccount, request.getTransactionType(),
                 request.getAmountInCents());
-
-        accountRepository.save(account);
-        if (destinationAccount != null) {
-            accountRepository.save(destinationAccount);
-        }
 
         Transaction transaction = new Transaction();
         transaction.setAccount(account);
@@ -77,6 +82,18 @@ public class TransactionService {
         transaction.setTags(request.getTags());
 
         Transaction saved = transactionRepository.save(transaction);
+
+        // Recorrente com data no passado: registra as ocorrências que já deveriam ter acontecido
+        if (recurring) {
+            generateMissedOccurrences(saved, account);
+        }
+
+        // Contas salvas por último: o saldo já inclui a original e as ocorrências geradas
+        accountRepository.save(account);
+        if (destinationAccount != null) {
+            accountRepository.save(destinationAccount);
+        }
+
         return toResponseDTO(saved);
     }
 
@@ -99,7 +116,7 @@ public class TransactionService {
 
         rejectPiggyTransaction(transaction);
         rejectPiggyType(request.getTransactionType());
-        
+
         // Reverte o efeito anterior no saldo
         revertBalanceEffect(
                 transaction.getAccount(),
@@ -159,7 +176,7 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
         rejectPiggyTransaction(transaction);
-        
+
         // Reverte o efeito no saldo antes de deletar
         revertBalanceEffect(
                 transaction.getAccount(),
@@ -193,6 +210,75 @@ public class TransactionService {
         return summary;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Recorrência                                                         */
+    /* ------------------------------------------------------------------ */
+
+    // Recorrência só vale para receita/despesa (transferência não é recorrente)
+    private boolean isRecurringRequest(TransactionRequestDTO request) {
+        return Boolean.TRUE.equals(request.getIsRecurring())
+                && request.getRecurrencyType() != null
+                && !"TRANSFER".equals(request.getTransactionType());
+    }
+
+    // Recorrência diária só pode começar até 1 mês atrás (evita dezenas de lançamentos de uma vez)
+    private void validateRecurrence(TransactionRequestDTO request) {
+        if ("DAILY".equals(request.getRecurrencyType())
+                && request.getTransactionDate().toLocalDate().isBefore(LocalDate.now().minusMonths(1))) {
+            throw new ValidationException("Recorrência diária pode começar no máximo 1 mês atrás");
+        }
+    }
+
+    // Cria uma cópia para cada ocorrência entre a data original (exclusive) e hoje (inclusive)
+    private void generateMissedOccurrences(Transaction original, Account account) {
+        LocalDate today = LocalDate.now();
+        List<Transaction> copies = new ArrayList<>();
+
+        for (int step = 1; ; step++) {
+            // Sempre calculado a partir da data ORIGINAL (31/01 + 1 mês = 28/02, + 2 meses = 31/03)
+            LocalDateTime next = nextOccurrence(
+                    original.getTransactionDate(), original.getRecurrencyType(), step);
+
+            if (next.toLocalDate().isAfter(today)) break; // futuras: ficam para a automação (Sprint 5)
+
+            if (step > MAX_BACKFILL_OCCURRENCES) {
+                throw new ValidationException("Data muito antiga: a recorrência geraria mais de "
+                        + MAX_BACKFILL_OCCURRENCES + " transações");
+            }
+
+            Transaction copy = new Transaction();
+            copy.setAccount(account);
+            copy.setCategory(original.getCategory());
+            copy.setAmountInCents(original.getAmountInCents());
+            copy.setDescription(original.getDescription());
+            copy.setTransactionDate(next);
+            copy.setTransactionType(original.getTransactionType());
+            copy.setIsRecurring(false); // só a original é a "série"; a cópia é um lançamento comum
+            copy.setRecurrencyType(null);
+            copy.setTags(original.getTags());
+            copy.setRecurrenceParent(original);
+
+            applyBalanceEffect(account, null, copy.getTransactionType(), copy.getAmountInCents());
+            copies.add(copy);
+        }
+
+        transactionRepository.saveAll(copies);
+    }
+
+    private LocalDateTime nextOccurrence(LocalDateTime start, String recurrency, int step) {
+        return switch (recurrency) {
+            case "DAILY" -> start.plusDays(step);
+            case "WEEKLY" -> start.plusWeeks(step);
+            case "MONTHLY" -> start.plusMonths(step);
+            case "ANNUAL" -> start.plusYears(step);
+            default -> throw new ValidationException("Tipo de recorrência inválido");
+        };
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Saldo                                                               */
+    /* ------------------------------------------------------------------ */
+
     // Aplica o efeito da transação nos saldos
     private void applyBalanceEffect(Account account, Account destination,
                                      String type, Long amount) {
@@ -219,6 +305,10 @@ public class TransactionService {
         }
     }
 
+    /* ------------------------------------------------------------------ */
+    /* Validações                                                          */
+    /* ------------------------------------------------------------------ */
+
     private void validateTransferFields(TransactionRequestDTO request) {
         if ("TRANSFER".equals(request.getTransactionType())
                 && request.getDestinationAccountId() == null) {
@@ -226,7 +316,7 @@ public class TransactionService {
         }
     }
 
-        // Transações PIGGY_* nascem só nas movimentações do porquinho
+    // Transações PIGGY_* nascem só nas movimentações do porquinho
     private void rejectPiggyType(String type) {
         if (type != null && type.startsWith("PIGGY_")) {
             throw new ValidationException("Use a tela de Metas para guardar ou retirar dinheiro de um porquinho");

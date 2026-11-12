@@ -7,8 +7,9 @@ const api = axios.create({
 //interceptor para rodar antes das chamadas
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
+    const isAuthRequest = config.url?.includes('/auth/');
 
-    if(token) {
+    if (token && !isAuthRequest) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -21,7 +22,7 @@ api.interceptors.response.use(
   (error) => {
     const isAuthRoute = error.config?.url?.includes('/auth/');
 
-    if (error.response?.status === 401 && isAuthRoute) {
+    if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
       window.location.href = '/login?expired=true';
     }

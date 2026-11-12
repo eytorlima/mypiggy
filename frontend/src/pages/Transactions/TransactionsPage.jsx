@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { getAccounts } from '../../services/accountService';
 import { getCategories } from '../../services/categoryService';
 import { getTransactions, deleteTransaction } from '../../services/transactionService';
@@ -35,6 +36,7 @@ function dayLabel(dateStr) {
 }
 
 export function TransactionsPage() {
+  const { refreshKey } = useOutletContext();
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -63,11 +65,14 @@ export function TransactionsPage() {
   }
 
   useEffect(() => {
-    loadAccounts();
-    getCategories()
-      .then((data) => setCategories(data || []))
-      .catch(() => setError('Não foi possível carregar as categorias.'));
+  getCategories()
+    .then((data) => setCategories(data || []))
+    .catch(() => setError('Não foi possível carregar as categorias.'));
   }, []);
+
+  useEffect(() => {
+    loadAccounts();
+  }, [refreshKey]);
 
   /* Transações: recarregadas quando os filtros mudam ou após salvar/excluir */
   useEffect(() => {
@@ -106,7 +111,7 @@ export function TransactionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [filters, reloadKey]);
+  }, [filters, reloadKey, refreshKey]);
 
   /* Agrupamento por dia (mais recente primeiro) */
   const groups = useMemo(() => {

@@ -32,6 +32,10 @@ public class Transaction {
     @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recurrence_parent_id", nullable = true)
+    private Transaction recurrenceParent;
+
     @Column(name = "amount_in_cents", nullable = false)
     private Long amountInCents;
 
