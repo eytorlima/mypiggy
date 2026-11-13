@@ -6,6 +6,8 @@ import { getMonthlySummary } from '../../services/transactionService';
 import { BalanceCard } from '../../components/ui/BalanceCard';
 import { AccountsSection } from '../../components/ui/AccountSection';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
+import { getPiggyBanks } from '../../services/PiggyBankService';
+import { PiggyBanksSection } from '../../components/ui/PiggyBankSection';
 
 const EMPTY_MONTHLY = { CREDIT: 0, DEBIT: 0 };
 
@@ -14,6 +16,7 @@ export function DashboardPage() {
   const { refreshKey } = useOutletContext(); // muda quando uma transação é salva pelo FAB
 
   const [accounts, setAccounts] = useState([]);
+  const [piggyBanks, setPiggyBanks] = useState([]);
   const [summary, setSummary] = useState({
     totalBalance: 0,
     monthlyIncome: 0,
@@ -31,9 +34,10 @@ export function DashboardPage() {
         setError('');
 
         // Contas e resumo mensal em paralelo
-        const [accountsData, monthly] = await Promise.all([
+        const [accountsData, monthly, piggyData] = await Promise.all([
           getAccounts(),
           getMonthlySummary().catch(() => EMPTY_MONTHLY),
+          getPiggyBanks().catch(() => []), // se falhar, o dashboard continua sem a seção
         ]);
 
         if (cancelled) return;
@@ -41,6 +45,7 @@ export function DashboardPage() {
         const list = accountsData || [];
 
         setAccounts(list);
+        setPiggyBanks(piggyData || []);
         setSummary({
           // Saldo total = soma das contas exibidas (sempre consistente com os cards)
           totalBalance: list.reduce((sum, a) => sum + (a.balanceInCents || 0), 0),
@@ -87,6 +92,12 @@ export function DashboardPage() {
 
       {error && (
         <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+      )}
+
+      {loading ? (
+        <SkeletonCard height="h-36" />
+      ) : (
+        <PiggyBanksSection piggyBanks={piggyBanks} />
       )}
     </div>
   );
