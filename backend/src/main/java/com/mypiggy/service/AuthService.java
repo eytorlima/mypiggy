@@ -21,9 +21,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final PiggyBankService piggyBankService;
+    private final UserSettingsService userSettingsService;
 
-    // @Transactional: usuário e reserva de emergência são salvos juntos. Se a reserva falhar,
-    // o cadastro inteiro é desfeito (não fica usuário sem reserva)
+    // @Transactional: usuário, reserva de emergência e configurações são salvos juntos.
+    // Se qualquer um falhar, o cadastro inteiro é desfeito
     @Transactional
     public AuthResponseDTO register(RegisterRequestDTO request) {
         
@@ -47,6 +48,9 @@ public class AuthService {
 
         // Todo usuário nasce com uma Reserva de emergência
         piggyBankService.createEmergencyFor(savedUser);
+
+        // Todo usuário nasce com as configurações padrão (BRL, pt-BR, horário de Brasília)
+        userSettingsService.createDefaultFor(savedUser);
 
         String token = jwtService.generateToken(savedUser.getEmail());
 
