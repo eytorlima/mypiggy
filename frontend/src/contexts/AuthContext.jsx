@@ -40,8 +40,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+    // Atualiza campos do usuário em memória (ex.: nome após editar o perfil), sem novo login
+  function updateUser(partial) {
+    setUser((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
