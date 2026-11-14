@@ -3,7 +3,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { searchTickers } from '../../services/stockService';
 import { formatPercent, getTrend, isValidTicker, normalizeTicker } from '../../utils/stockUtils';
-import StockLogo from './StockLogo';
+import StockLogo from '../Stocks/StockLogo';
 
 const TREND_TEXT = {
   up: 'text-green-600',

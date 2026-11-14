@@ -20,8 +20,8 @@ import {
   periodRequirement,
   sliceByPeriod,
 } from '../../utils/stockUtils';
-import StockLogo from './StockLogo';
-import StockPriceChart from './StockPriceChart';
+import StockLogo from '../Stocks/StockLogo';
+import StockPriceChart from '../Stocks/StockPriceChart';
 
 const TREND_TEXT = {
   up: 'text-green-600',

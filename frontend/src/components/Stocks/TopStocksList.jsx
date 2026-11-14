@@ -4,7 +4,7 @@ import {
   formatStockPrice,
   getTrend,
 } from '../../utils/stockUtils';
-import StockLogo from './StockLogo';
+import StockLogo from '../Stocks/StockLogo';
 
 const TREND_TEXT = {
   up: 'text-green-600',
