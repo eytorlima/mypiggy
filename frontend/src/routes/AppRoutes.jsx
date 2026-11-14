@@ -8,11 +8,10 @@ import { LoginPage } from '../pages/Login/LoginPage';
 import { RegisterPage } from '../pages/Register/RegisterPage';
 import { PrivacyPage } from '../pages/Privacy/PrivacyPage';
 import { SettingsPage } from '../pages/Settings/SettingsPage';
-
 import { DashboardPage } from '../pages/Dashboard/DashboardPage';
 import { TransactionsPage } from '../pages/Transactions/TransactionsPage';
 import { GoalsPage } from '../pages/Goals/GoalsPage';
-import { ActionsPage } from '../pages/Actions/ActionsPage';
+import { StocksPage } from '../pages/Stocks/StocksPage';
 import { AccountsPage } from '../pages/Accounts/AccountsPage';
 import { CategoriesPage } from '../pages/Categories/CategoriesPage';
 import { ReportsPage } from '../pages/Reports/ReportsPage';
@@ -37,7 +36,7 @@ export function AppRoutes() {
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
-          <Route path="/actions" element={<ActionsPage />} />
+          <Route path="/stocks" element={<StocksPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

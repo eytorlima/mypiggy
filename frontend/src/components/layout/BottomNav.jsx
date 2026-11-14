@@ -10,7 +10,7 @@ const navItems = [
     { label: 'Transações',  icon: <ReceiptLongIcon />,  path: '/transactions'   },
     { label: 'FAB',         icon: null,                 path: null              },
     { label: 'Relatórios',      icon: <BarChart />,     path: '/reports'          },
-    { label: 'Ações',       icon: <CurrencyBitcoinIcon />,     path: '/actions'        }
+    { label: 'Ações',       icon: <CurrencyBitcoinIcon />,     path: '/stocks'        }
 ];
 
 export function BottomNav({ onFabClick }){
