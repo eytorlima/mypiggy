@@ -25,11 +25,11 @@ function Row({ label, title, detail }) {
       <Label>{label}</Label>
       {title ? (
         <>
-          <p className="truncate font-semibold text-gray-800">{title}</p>
+          <p className="truncate font-semibold text-gray-800" title={title}>{title}</p>
           <p className="text-sm text-gray-600">{detail}</p>
         </>
       ) : (
-        <p className="text-gray-400">—</p>
+        <p className="text-gray-500" aria-label="Sem dados">—</p>
       )}
     </div>
   );
@@ -41,9 +41,9 @@ function FlowCard({ heading, totalClass, report, topLabel }) {
   const frequent = mostFrequentOf(report);
 
   return (
-    <div className="rounded-xl bg-white p-5 shadow">
+    <div className="rounded-xl bg-white p-4 sm:p-5 shadow">
       <Label>{heading}</Label>
-      <p className={`text-2xl font-bold ${totalClass}`}>
+      <p className={`text-2xl font-bold break-words ${totalClass}`}>
         {report ? formatBRL(report.totalInCents) : '—'}
       </p>
 
@@ -82,7 +82,7 @@ export default function SummaryCards({ incomeReport, expenseReport }) {
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       <FlowCard
         heading="Total de entradas"
-        totalClass="text-green-600"
+        totalClass="text-green-700"
         report={incomeReport}
         topLabel="Maior receita"
       />
@@ -94,13 +94,13 @@ export default function SummaryCards({ incomeReport, expenseReport }) {
         topLabel="Maior despesa"
       />
 
-      <div className="rounded-xl bg-white p-5 shadow">
+      <div className="rounded-xl bg-white p-4 sm:p-5 shadow">
         <Label>Saldo do mês</Label>
         {net === null ? (
-          <p className="text-2xl font-bold text-gray-400">—</p>
+          <p className="text-2xl font-bold text-gray-500" aria-label="Carregando">—</p>
         ) : (
           <p
-            className={`text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            className={`text-2xl font-bold break-words ${net >= 0 ? 'text-green-700' : 'text-red-600'}`}
           >
             {net < 0 ? '-' : ''}
             {formatBRL(Math.abs(net))}

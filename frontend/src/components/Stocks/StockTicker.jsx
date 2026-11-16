@@ -12,7 +12,8 @@ const TREND_STYLE = {
  *
  * A lista é renderizada 2 vezes seguidas e a animação (classe .ticker-track, em index.css)
  * desloca -50%: quando a 1ª cópia sai de cena, a 2ª ocupa exatamente o mesmo lugar,
- * e o loop parece contínuo. Pausa ao passar o mouse e respeita "reduzir movimento".
+ * e o loop parece contínuo. Pausa ao passar o mouse ou ao focar um item (teclado)
+ * e respeita "reduzir movimento".
  *
  * @param stocks    [{ symbol, price, changePercent }]
  * @param loading   boolean
@@ -20,7 +21,7 @@ const TREND_STYLE = {
  */
 export default function StockTicker({ stocks, loading, onSelect }) {
   if (loading) {
-    return <div className="h-10 animate-pulse rounded-xl bg-gray-200" />;
+    return <div aria-hidden="true" className="h-10 animate-pulse rounded-xl bg-gray-200" />;
   }
 
   const items = stocks.filter((stock) => stock.price != null);
@@ -30,11 +31,12 @@ export default function StockTicker({ stocks, loading, onSelect }) {
 
   return (
     <div
-      className="overflow-hidden rounded-xl bg-gray-900 py-2.5 shadow"
+      role="region"
       aria-label="Cotações das principais ações"
+      className="overflow-hidden rounded-xl bg-gray-900 py-2.5 shadow"
     >
       <div
-        className="ticker-track flex w-max"
+        className="ticker-track flex w-max focus-within:[animation-play-state:paused]"
         style={{ animationDuration: `${items.length * 5}s` }}
       >
         {loop.map((item, index) => {

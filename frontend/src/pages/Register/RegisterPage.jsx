@@ -8,25 +8,22 @@ import { useNavigate, Link } from 'react-router-dom';
 
 import api from '../../services/api';
 
-import { PiggyLogo } from '../../components/ui/PiggyLogo';
-import { SocialButton } from '../../components/ui/SocialButton';
 import { InputField } from '../../components/ui/InputField';
 
-import GoogleIcon from '@mui/icons-material/Google';
 import PersonOutlined from '@mui/icons-material/PersonOutlined';
 import EmailOutlined from '@mui/icons-material/EmailOutlined';
 import BadgeOutlined from '@mui/icons-material/BadgeOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
-import LockOpenOutlined from '@mui/icons-material/LockOpenOutlined';
 
 const registerSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-  email: z.string().email('E-mail inválido'),
+  name: z.string().trim().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100, 'Máximo de 100 caracteres'),
+  email: z.string().email('E-mail inválido').max(100, 'Máximo de 100 caracteres'),
   cpf: z.string()
     .transform(val => val.replace(/\D/g, ''))
     .pipe(z.string().length(11, 'CPF deve ter 11 dígitos')),
   password: z.string()
     .min(8, 'Senha deve ter no mínimo 8 caracteres')
+    .max(72, 'Máximo de 72 caracteres')
     .regex(/[A-Z]/, 'Deve conter pelo menos uma letra maiúscula')
     .regex(/[0-9]/, 'Deve conter pelo menos um número')
     .regex(/[^a-zA-Z0-9]/, 'Deve conter pelo menos um caractere especial'),
@@ -67,16 +64,16 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="flex flex-col items-center justify-center h-screen bg-primary-600">
-      <div className="flex flex-col w-lg h-auto py-5 rounded-2xl shadow-lg items-center justify-center text-white bg-primary-500">
-        <h3 className="text-md mt-2 text-shadow-sm font-bold tracking-wide">
+    <main className="flex flex-col items-center justify-center min-h-dvh px-4 py-6 bg-primary-600">
+      <div className="flex flex-col w-full max-w-lg h-auto py-5 px-4 rounded-2xl shadow-lg items-center justify-center text-white bg-primary-500">
+        <h1 className="text-base mt-2 text-shadow-sm font-bold tracking-wide text-center">
           Bem-vindo(a) ao MyPiggy!
-        </h3>
-        <p className="text-xs text-shadow-sm mt-1 font-light">
+        </h1>
+        <p className="text-xs text-shadow-sm mt-1 font-light text-center">
           Vamos administrar suas finanças?
         </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-1 w-96 h-auto gap-2 mt-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col w-full max-w-sm h-auto gap-2 mt-5">
 
           <InputField
             label="Nome completo"
@@ -86,6 +83,8 @@ export function RegisterPage() {
             register={register('name')}
             error={errors.name?.message}
             size="sm"
+            maxLength={100}
+            autoComplete="name"
           />
 
           <InputField
@@ -96,11 +95,14 @@ export function RegisterPage() {
             register={register('email')}
             error={errors.email?.message}
             size="sm"
+            maxLength={100}
+            autoComplete="email"
           />
 
           <InputField
             label="CPF"
             type="text"
+            inputMode="numeric"
             placeholder="000.000.000-00"
             icon={<BadgeOutlined fontSize="small" />}
             register={{
@@ -117,6 +119,7 @@ export function RegisterPage() {
             }}
             error={errors.cpf?.message}
             size="sm"
+            maxLength={14}
           />
 
           <InputField
@@ -127,6 +130,8 @@ export function RegisterPage() {
             register={register('password')}
             error={errors.password?.message}
             size="sm"
+            maxLength={72}
+            autoComplete="new-password"
             allowPasswordToggle
           />
 
@@ -138,26 +143,34 @@ export function RegisterPage() {
             register={register('confirmPassword')}
             error={errors.confirmPassword?.message}
             size="sm"
+            maxLength={72}
+            autoComplete="new-password"
             allowPasswordToggle
           />
 
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 py-1">
             <input
               type="checkbox"
               id="privacy"
+              aria-invalid={errors.privacyAccepted ? true : undefined}
               {...register('privacyAccepted')}
-              className="mt-0.5 accent-primary-900 cursor-pointer"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary-900 cursor-pointer"
             />
             <label htmlFor="privacy" className="text-xs text-white leading-tight">
               Ao cadastrar, você concorda com nossa{' '}
-              <Link to="/privacy" className="underline font-semibold text-black" target="_blank">
+              <Link
+                to="/privacy"
+                className="underline font-semibold text-black"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Política de Privacidade
               </Link>
               .
             </label>
           </div>
           {errors.privacyAccepted && (
-            <p className="text-red-700 text-xs">{errors.privacyAccepted.message}</p>
+            <p role="alert" className="text-red-900 font-semibold text-xs">{errors.privacyAccepted.message}</p>
           )}
 
           <button
@@ -167,15 +180,15 @@ export function RegisterPage() {
           >
             {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
           </button>
-          
+
           {apiError && (
-            <p className="text-red-900 text-sm font-semibold text-center">{apiError}</p>
+            <p role="alert" className="text-red-900 text-sm font-semibold text-center">{apiError}</p>
           )}
         </form>
 
-        <p className='text-xs font-extralight mt-4'>
+        <p className="text-xs font-light mt-4 text-center">
           Já tem uma conta?{' '}
-          <Link to="/login" className='underline text-black font-semibold'>
+          <Link to="/login" className="underline text-black font-semibold">
             Conecte-se!
           </Link>
         </p>

@@ -8,7 +8,7 @@ import StopCircleOutlined from '@mui/icons-material/StopCircleOutlined';
 
 // amountInCents vem SEMPRE positivo do back-end: o sinal depende do tipo
 const typeStyle = {
-  CREDIT:   { sign: '+', className: 'text-primary-600' },
+  CREDIT:   { sign: '+', className: 'text-primary-700' },
   DEBIT:    { sign: '-', className: 'text-red-600' },
   TRANSFER: { sign: '',  className: 'text-gray-500' },
 };
@@ -55,10 +55,14 @@ export function TransactionItem({ transaction, onEdit, onDelete, onEndRecurrence
     ? `${accountName} → ${destinationAccountName ?? '—'}`
     : [categoryName, accountName].filter(Boolean).join(' · ');
 
+  const hasActions = onEdit || onDelete || (onEndRecurrence && seriesActive);
+
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+    // No celular as ações descem para uma linha própria; do sm em diante ficam ao lado
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-wrap sm:flex-nowrap items-center gap-x-3 sm:gap-x-4 gap-y-2">
       <div
-        className="w-12 h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
+        aria-hidden="true"
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
         style={{ backgroundColor: bgColor }}
       >
         {iconElement}
@@ -66,50 +70,49 @@ export function TransactionItem({ transaction, onEdit, onDelete, onEndRecurrence
 
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-800 truncate">{title}</p>
-        <div className="flex items-center gap-2 min-w-0">
-          <p className="text-xs text-gray-400 truncate">{subtitle}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+          <p className="text-xs text-gray-500 truncate max-w-full">{subtitle}</p>
 
           {seriesActive && (
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded flex-shrink-0">
-              <RepeatOutlined style={{ fontSize: 12 }} />
+            <span className="flex items-center gap-0.5 text-[11px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded flex-shrink-0">
+              <RepeatOutlined style={{ fontSize: 12 }} aria-hidden="true" />
               {recurrenceLabel[recurrencyType] || 'Recorrente'}
             </span>
           )}
 
           {seriesEnded && (
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">
-              <StopCircleOutlined style={{ fontSize: 12 }} />
+            <span className="flex items-center gap-0.5 text-[11px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">
+              <StopCircleOutlined style={{ fontSize: 12 }} aria-hidden="true" />
               Recorrência encerrada
             </span>
           )}
         </div>
       </div>
 
-      <p className={`font-bold text-sm flex-shrink-0 ${style.className}`}>
+      <p className={`font-bold text-sm flex-shrink-0 whitespace-nowrap ${style.className}`}>
         {style.sign}
         {formatBRL(amountInCents)}
       </p>
 
-      {(onEdit || onDelete || (onEndRecurrence && seriesActive)) && (
-        <div className="flex gap-1 flex-shrink-0">
+      {hasActions && (
+        <div className="flex gap-1 flex-shrink-0 w-full justify-end sm:w-auto">
           {onEndRecurrence && seriesActive && (
             <button
               type="button"
               onClick={onEndRecurrence}
-              title="Encerrar recorrência"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50
+              className="flex items-center gap-1 px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-amber-700 bg-amber-50
                          border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors hover:cursor-pointer"
             >
-              <StopCircleOutlined style={{ fontSize: 16 }} />
-              <span className="hidden sm:inline">Encerrar recorrência</span>
+              <StopCircleOutlined style={{ fontSize: 16 }} aria-hidden="true" />
+              Encerrar recorrência
             </button>
           )}
           {onEdit && (
             <button
               type="button"
               onClick={onEdit}
-              aria-label="Editar transação"
-              className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors hover:cursor-pointer"
+              aria-label={`Editar transação ${title}`}
+              className="p-2 sm:p-1.5 text-gray-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors hover:cursor-pointer"
             >
               <EditOutlined fontSize="small" />
             </button>
@@ -118,8 +121,8 @@ export function TransactionItem({ transaction, onEdit, onDelete, onEndRecurrence
             <button
               type="button"
               onClick={onDelete}
-              aria-label="Excluir transação"
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors hover:cursor-pointer"
+              aria-label={`Excluir transação ${title}`}
+              className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hover:cursor-pointer"
             >
               <DeleteOutlineOutlined fontSize="small" />
             </button>

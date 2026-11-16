@@ -29,19 +29,31 @@ export default function CategoryLegend({ items, colors, hidden, onToggle, visibl
               type="button"
               onClick={() => onToggle(key)}
               aria-pressed={!isHidden}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-gray-50 hover:cursor-pointer ${
-                isHidden ? 'opacity-40' : ''
-              }`}
+              aria-label={`${item.name}, ${formatBRL(item.totalInCents)}, ${isHidden ? 'oculta' : 'visível'} no gráfico`}
+              className="flex w-full items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2.5 sm:py-2 text-left transition hover:bg-gray-50 hover:cursor-pointer"
             >
               <span
-                className="h-3 w-3 shrink-0 rounded-full"
+                aria-hidden="true"
+                className={`h-3 w-3 shrink-0 rounded-full ${isHidden ? 'opacity-40' : ''}`}
                 style={{ backgroundColor: colors[key] }}
               />
-              <span className={`flex-1 truncate text-sm ${isHidden ? 'line-through' : ''}`}>
+              <span
+                className={`flex-1 min-w-0 truncate text-sm ${
+                  isHidden ? 'line-through text-gray-500' : 'text-gray-800'
+                }`}
+                title={item.name}
+              >
                 {item.name}
               </span>
-              <span className="w-14 text-right text-sm text-gray-500">{percent}</span>
-              <span className="w-28 text-right text-sm font-medium text-gray-800">
+              <span className="w-12 sm:w-14 text-right text-xs sm:text-sm text-gray-600" aria-hidden="true">
+                {percent}
+              </span>
+              <span
+                className={`w-24 sm:w-28 text-right text-xs sm:text-sm font-medium ${
+                  isHidden ? 'text-gray-500' : 'text-gray-800'
+                }`}
+                aria-hidden="true"
+              >
                 {formatBRL(item.totalInCents)}
               </span>
             </button>

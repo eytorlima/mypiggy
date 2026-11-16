@@ -66,13 +66,15 @@ export function DashboardPage() {
   }, [refreshKey]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex flex-col items-center mt-4 mb-4">
-        <h1 className="text-xl font-bold text-gray-800">
-          Olá, {user?.name?.split(' ')[0]} 👋
+    <div className="flex flex-col gap-4 p-4 w-full max-w-3xl mx-auto" aria-busy={loading}>
+      <div className="flex flex-col items-center mt-4 mb-4 text-center">
+        <h1 className="text-xl font-bold text-gray-800 break-words max-w-full">
+          Olá, {user?.name?.split(' ')[0]} <span aria-hidden="true">👋</span>
         </h1>
-        <p className="text-sm text-gray-400">Aqui está o resumo das suas finanças.</p>
+        <p className="text-sm text-gray-500">Aqui está o resumo das suas finanças.</p>
       </div>
+
+      {loading && <p className="sr-only" role="status">Carregando seu resumo...</p>}
 
       {loading ? (
         <SkeletonCard height="h-36" />
@@ -91,7 +93,7 @@ export function DashboardPage() {
       )}
 
       {error && (
-        <p className="text-red-500 text-sm text-center mt-4">{error}</p>
+        <p role="alert" className="text-red-600 text-sm text-center mt-4">{error}</p>
       )}
 
       {loading ? (

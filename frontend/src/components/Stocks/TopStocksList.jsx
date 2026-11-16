@@ -7,7 +7,7 @@ import {
 import StockLogo from '../Stocks/StockLogo';
 
 const TREND_TEXT = {
-  up: 'text-green-600',
+  up: 'text-green-700',
   down: 'text-red-600',
   flat: 'text-gray-500',
 };
@@ -19,6 +19,7 @@ function StockTile({ stock, active, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(stock.symbol)}
+      aria-pressed={active}
       className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-left shadow-sm transition hover:cursor-pointer hover:border-primary-300 ${
         active ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-100'
       }`}
@@ -70,7 +71,7 @@ export default function TopStocksList({ stocks, loading, activeSymbol, onSelect 
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div aria-hidden="true" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="h-[62px] animate-pulse rounded-xl bg-gray-200" />
           ))}

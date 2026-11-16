@@ -25,12 +25,14 @@ export function AccountCard({ account, onEdit, onDelete }) {
     accountIconMap[icon] || typeIconMap[accountType] || <AccountBalanceWalletOutlined />;
 
   return (
+    // No celular as ações descem para uma linha própria; do sm em diante ficam ao lado
     <div
-      className={`bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-4
+      className={`bg-white rounded-2xl p-4 shadow-sm border flex flex-wrap sm:flex-nowrap items-center gap-x-3 sm:gap-x-4 gap-y-2
                   ${isNegative ? 'border-red-200' : 'border-gray-100'}`}
     >
       <div
-        className="w-12 h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
+        aria-hidden="true"
+        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
         style={{ backgroundColor: bgColor }}
       >
         {iconElement}
@@ -38,12 +40,12 @@ export function AccountCard({ account, onEdit, onDelete }) {
 
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-gray-800 truncate">{name}</p>
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-gray-400">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <p className="text-xs text-gray-500">
             {typeLabelMap[accountType] || accountType}
           </p>
           {isNegative && (
-            <span className="text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
               Devedora
             </span>
           )}
@@ -51,21 +53,21 @@ export function AccountCard({ account, onEdit, onDelete }) {
       </div>
 
       <p
-        className={`font-bold text-sm flex-shrink-0 ${
-          isNegative ? 'text-red-600' : 'text-primary-600'
+        className={`font-bold text-sm flex-shrink-0 whitespace-nowrap ${
+          isNegative ? 'text-red-600' : 'text-primary-700'
         }`}
       >
         {formatBRL(balanceInCents)}
       </p>
 
       {(onEdit || onDelete) && (
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 flex-shrink-0 w-full justify-end sm:w-auto">
           {onEdit && (
             <button
               type="button"
               onClick={onEdit}
-              aria-label="Editar conta"
-              className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors hover:cursor-pointer"
+              aria-label={`Editar conta ${name}`}
+              className="p-2 sm:p-1.5 text-gray-500 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors hover:cursor-pointer"
             >
               <EditOutlined fontSize="small" />
             </button>
@@ -74,8 +76,8 @@ export function AccountCard({ account, onEdit, onDelete }) {
             <button
               type="button"
               onClick={onDelete}
-              aria-label="Excluir conta"
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors hover:cursor-pointer"
+              aria-label={`Excluir conta ${name}`}
+              className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors hover:cursor-pointer"
             >
               <DeleteOutlineOutlined fontSize="small" />
             </button>

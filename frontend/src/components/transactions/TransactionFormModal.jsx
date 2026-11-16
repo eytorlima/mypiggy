@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,9 @@ import {
 
 import { InputField } from '../ui/InputField';
 import { SelectField } from '../ui/SelectField';
+import { ModalShell } from '../ui/ModalShell';
+import { useModalTransition } from '../../hooks/useModalTransition';
+import { useToast } from '../../contexts/ToastContext';
 
 import { RecurrenceConfirmModal } from './RecurrenceConfirmModal';
 import { missedOccurrences, oneMonthAgoInput } from '../../utils/recurrenceUtils';
@@ -40,7 +43,7 @@ const TABS = [
     label: 'Receita',
     submit: 'Registrar receita',
     btn: 'bg-primary-500 hover:bg-primary-600',
-    text: 'text-primary-600',
+    text: 'text-primary-700',
   },
   {
     value: 'DEBIT',
@@ -166,9 +169,11 @@ export function TransactionFormModal({
   const [pendingConfirm, setPendingConfirm] = useState(null); // { data, dates } aguardando o popup
   const [confirming, setConfirming] = useState(false);
 
+  const titleId = useId();
+  const toast = useToast();
+
   // mounted: está no DOM | visible: está na posição final (dispara a transição)
-  const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
+  const { mounted, visible } = useModalTransition(open, onClose);
 
   const {
     register,
@@ -258,52 +263,6 @@ export function TransactionFormModal({
     transactionType,
     categoryId,
   ]);
-
-
-  /* ---------- Animação de entrada/saída ---------- */
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-
-      const t = setTimeout(
-        () => setVisible(true),
-        20
-      );
-
-      return () => clearTimeout(t);
-    }
-
-    setVisible(false);
-
-    const t = setTimeout(
-      () => setMounted(false),
-      250
-    );
-
-    return () => clearTimeout(t);
-  }, [open]);
-
-
-  /* ---------- Fechar com ESC ---------- */
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKey = (e) =>
-      e.key === 'Escape' && onClose();
-
-    window.addEventListener(
-      'keydown',
-      handleKey
-    );
-
-    return () =>
-      window.removeEventListener(
-        'keydown',
-        handleKey
-      );
-  }, [open, onClose]);
 
 
   /* ---------- Preenche (edição) ou limpa (criação) a cada abertura ---------- */
@@ -413,7 +372,7 @@ export function TransactionFormModal({
     );
   }
 
-    // Passo antes de salvar: valida a recorrência diária e abre o popup de confirmação
+  // Passo antes de salvar: valida a recorrência diária e abre o popup de confirmação
   function onSubmit(data) {
     setApiError('');
 
@@ -508,6 +467,11 @@ export function TransactionFormModal({
             payload
           );
 
+      toast.success(
+        isEdit
+          ? 'Transação atualizada.'
+          : 'Transação registrada com sucesso!'
+      );
       onSuccess(saved, isEdit);
 
     } catch (err) {
@@ -529,34 +493,14 @@ export function TransactionFormModal({
 
 
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center
-                  transition-opacity duration-200 ease-out ${
-                    visible
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                  }`}
-      onClick={onClose}
-    >
-
-      <div
-        className={`bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-5 max-h-[95vh] overflow-y-auto
-                    shadow-2xl transition-all duration-300 ease-out
-                    ${
-                      visible
-                        ? 'opacity-100 translate-y-0 sm:scale-100'
-                        : 'opacity-0 translate-y-8 sm:translate-y-4 sm:scale-95'
-                    }`}
-        onClick={(e) =>
-          e.stopPropagation()
-        }
-      >
+    <>
+      <ModalShell visible={visible} onClose={onClose} titleId={titleId}>
 
         {/* Header */}
 
         <div className="flex items-center justify-between mb-3">
 
-          <h2 className="text-lg font-bold text-gray-800">
+          <h2 id={titleId} className="text-lg font-bold text-gray-800">
             {isEdit
               ? 'Editar transação'
               : 'Nova transação'}
@@ -566,7 +510,8 @@ export function TransactionFormModal({
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+            className="-mr-2 w-10 h-10 rounded-full flex items-center justify-center
+                       text-gray-500 hover:text-gray-700 hover:cursor-pointer"
           >
             <CloseOutlined />
           </button>
@@ -576,9 +521,14 @@ export function TransactionFormModal({
 
         {/* Abas */}
 
-        <div className="relative grid grid-cols-3 p-1 bg-gray-100 rounded-lg mb-3">
+        <div
+          role="group"
+          aria-label="Tipo de transação"
+          className="relative grid grid-cols-3 p-1 bg-gray-100 rounded-lg mb-3"
+        >
 
           <div
+            aria-hidden="true"
             className="absolute top-1 bottom-1 left-1 rounded-md bg-white shadow transition-transform duration-200 ease-out"
             style={{
               width:
@@ -607,16 +557,16 @@ export function TransactionFormModal({
                     tab.value
                   )
                 }
-                className={`relative z-10 py-1.5 text-sm font-semibold rounded-md transition-colors
+                className={`relative z-10 py-1.5 px-1 text-[13px] sm:text-sm font-semibold rounded-md transition-colors
                             ${
                               active
                                 ? tab.text
-                                : 'text-gray-400'
+                                : 'text-gray-500'
                             }
                             ${
                               locked
                                 ? 'opacity-40 cursor-not-allowed'
-                                : 'hover:cursor-pointer hover:text-gray-600'
+                                : 'hover:cursor-pointer hover:text-gray-700'
                             }`}
               >
                 {tab.label}
@@ -628,7 +578,10 @@ export function TransactionFormModal({
 
 
         {noAccounts && (
-          <p className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <p
+            role="status"
+            className="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
+          >
             Você ainda não tem contas. Crie uma conta antes de registrar transações.
           </p>
         )}
@@ -860,7 +813,7 @@ export function TransactionFormModal({
 
             <div className="flex flex-col gap-2">
 
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:cursor-pointer w-fit">
+              <label className="flex items-center gap-2 min-h-10 text-sm font-medium text-gray-700 hover:cursor-pointer w-fit">
 
                 <input
                   type="checkbox"
@@ -910,7 +863,7 @@ export function TransactionFormModal({
 
           {/* Transação de uma série: só dá para encerrar (não editar) a recorrência */}
           {isEdit && transaction?.recurrenceSeriesId && (
-            <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
               {transaction.recurrenceActive !== false ? (
                 <>
                   <p className="text-sm text-gray-600">
@@ -920,7 +873,7 @@ export function TransactionFormModal({
                     <button
                       type="button"
                       onClick={() => onEndRecurrence(transaction)}
-                      className="flex-shrink-0 px-3 py-1.5 text-sm font-semibold text-amber-700 bg-amber-50
+                      className="flex-shrink-0 px-3 py-2 sm:py-1.5 text-sm font-semibold text-amber-700 bg-amber-50
                                  border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors hover:cursor-pointer"
                     >
                       Encerrar recorrência
@@ -935,7 +888,7 @@ export function TransactionFormModal({
 
 
           {apiError && (
-            <p className="text-red-500 text-sm text-center">
+            <p role="alert" className="text-red-600 text-sm text-center">
               {apiError}
             </p>
           )}
@@ -959,8 +912,9 @@ export function TransactionFormModal({
 
         </form>
 
-      </div>
+      </ModalShell>
 
+      {/* Fora do ModalShell: o painel tem transform, que prenderia um elemento fixed aqui dentro */}
       <RecurrenceConfirmModal
         dates={pendingConfirm?.dates}
         recurrencyType={pendingConfirm?.data.recurrencyType}
@@ -968,7 +922,6 @@ export function TransactionFormModal({
         onConfirm={handleConfirmRecurrence}
         onCancel={() => setPendingConfirm(null)}
       />
-
-    </div>
+    </>
   );
 }

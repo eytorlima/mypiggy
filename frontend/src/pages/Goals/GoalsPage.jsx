@@ -8,9 +8,11 @@ import { PiggyBankCard } from '../../components/piggybank/PiggyBankCard';
 import { PiggyBankFormModal } from '../../components/piggybank/PiggyBankFormModal';
 import { DepositWithdrawModal } from '../../components/piggybank/DepositWithdrawModal';
 import { PiggyBankDeleteModal } from '../../components/piggybank/PiggyBankDeleteModal';
+import { useToast } from '../../contexts/ToastContext';
 import { formatBRL } from '../../utils/formatCurrency';
 
 export function GoalsPage() {
+  const toast = useToast();
   const [piggyBanks, setPiggyBanks] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +130,7 @@ export function GoalsPage() {
       setPiggyBanks((prev) => prev.filter((p) => p.id !== deletingPiggy.id));
       refreshAccounts(); // o dinheiro devolvido mudou o saldo da conta
       closeDelete();
+      toast.success('Porquinho excluído.');
     } catch (err) {
       setDeleteError(err.response?.data?.message || 'Não foi possível excluir o porquinho.');
     } finally {
@@ -143,22 +146,23 @@ export function GoalsPage() {
   const onlyEmergency = piggyBanks.length > 0 && piggyBanks.every((p) => p.isEmergency);
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex flex-col gap-4 p-4 pb-28">
+    <div className="mx-auto w-full max-w-6xl flex flex-col gap-4 p-4" aria-busy={loading}>
       <div className="flex items-center justify-center w-full relative mt-5">
-        <h2 className="font-bold text-gray-700">Meus porquinhos</h2>
+        <h1 className="font-bold text-gray-700">Meus porquinhos</h1>
         <button
           type="button"
           onClick={openCreate}
-          className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
+          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
-          <AddOutlined fontSize="small" />
+          <AddOutlined fontSize="small" aria-hidden="true" />
           Novo
         </button>
       </div>
 
       {loading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <p className="sr-only" role="status">Carregando porquinhos...</p>
           <SkeletonCard height="h-52" />
           <SkeletonCard height="h-52" />
         </div>
@@ -166,18 +170,19 @@ export function GoalsPage() {
 
       {/* Resumo */}
       {!loading && piggyBanks.length > 0 && (
-        <div className="rounded-2xl bg-white border border-black/10 shadow-md px-5 py-4 flex items-center justify-between gap-4">
-          <div>
+        <div className="rounded-2xl bg-white border border-black/10 shadow-md px-4 sm:px-5 py-4 flex items-center justify-between gap-4">
+          <div className="min-w-0">
             <p className="text-xs text-gray-500">Total guardado</p>
-            <p className="text-xl font-bold text-gray-800">{formatBRL(totalSaved)}</p>
+            <p className="text-lg sm:text-xl font-bold text-gray-800 break-words">{formatBRL(totalSaved)}</p>
           </div>
-          <div className="text-right text-xs text-gray-500">
+          <div className="text-right text-xs text-gray-500 flex-shrink-0">
             <p>
               {piggyBanks.length} {piggyBanks.length === 1 ? 'porquinho' : 'porquinhos'}
             </p>
             {goalsReached > 0 && (
-              <p className="font-semibold" style={{ color: '#f59e0b' }}>
-                🎉 {goalsReached} {goalsReached === 1 ? 'meta atingida' : 'metas atingidas'}
+              <p className="font-semibold text-amber-700">
+                <span aria-hidden="true">🎉 </span>
+                {goalsReached} {goalsReached === 1 ? 'meta atingida' : 'metas atingidas'}
               </p>
             )}
           </div>
@@ -200,11 +205,11 @@ export function GoalsPage() {
       )}
 
       {/* Estado vazio: só existe a reserva de emergência */}
-      {!loading && onlyEmergency && (
+      {!loading && !error && onlyEmergency && (
         <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-          <SavingsOutlined className="text-gray-300" style={{ fontSize: 64 }} />
+          <SavingsOutlined className="text-gray-300" style={{ fontSize: 64 }} aria-hidden="true" />
           <p className="text-gray-500 font-medium">Crie seu primeiro porquinho</p>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 text-sm">
             Guarde dinheiro para uma viagem, um objetivo ou só para ter uma caixinha.
           </p>
           <button
@@ -217,7 +222,9 @@ export function GoalsPage() {
         </div>
       )}
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      {error && (
+        <p role="alert" className="text-red-600 text-sm text-center">{error}</p>
+      )}
 
       <PiggyBankFormModal
         open={formOpen}

@@ -24,7 +24,7 @@ import StockLogo from '../Stocks/StockLogo';
 import StockPriceChart from '../Stocks/StockPriceChart';
 
 const TREND_TEXT = {
-  up: 'text-green-600',
+  up: 'text-green-700',
   down: 'text-red-600',
   flat: 'text-gray-500',
 };
@@ -117,7 +117,7 @@ export default function StockCard({
             type="button"
             onClick={onRefresh}
             aria-label="Atualizar cotação"
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:cursor-pointer hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-2 sm:p-1.5 text-gray-500 transition-colors hover:cursor-pointer hover:bg-gray-100 hover:text-gray-700"
           >
             <RefreshIcon fontSize="small" />
           </button>
@@ -126,8 +126,8 @@ export default function StockCard({
             onClick={onToggleFavorite}
             aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
             aria-pressed={isFavorite}
-            className={`rounded-lg p-1.5 transition-colors hover:cursor-pointer hover:bg-gray-100 ${
-              isFavorite ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'
+            className={`rounded-lg p-2 sm:p-1.5 transition-colors hover:cursor-pointer hover:bg-gray-100 ${
+              isFavorite ? 'text-yellow-600' : 'text-gray-500 hover:text-yellow-600'
             }`}
           >
             {isFavorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
@@ -137,16 +137,16 @@ export default function StockCard({
 
       {/* Preço e variação do dia */}
       <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
-        <p className="text-3xl font-bold text-gray-800">{formatStockPrice(quote.price)}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-gray-800 break-words">{formatStockPrice(quote.price)}</p>
         <p className={`flex items-center gap-1 pb-1 text-sm font-semibold ${TREND_TEXT[trend]}`}>
-          <TrendIcon fontSize="small" />
+          <TrendIcon fontSize="small" aria-hidden="true" />
           {formatSigned(quote.change)} ({formatPercent(quote.changePercent)})
-          <span className="font-normal text-gray-400">hoje</span>
+          <span className="font-normal text-gray-500">hoje</span>
         </p>
       </div>
 
       {quote.updatedAt && (
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-500">
           Atualizado em {formatDateTime(quote.updatedAt)}
         </p>
       )}
@@ -169,7 +169,7 @@ export default function StockCard({
                   onClick={() => onChangePeriod(item.key)}
                   aria-pressed={selected}
                   title={available ? item.title : periodRequirement(item)}
-                  className={`rounded-lg px-3 py-1 text-xs font-medium transition ${
+                  className={`rounded-lg px-3 py-2 sm:py-1 text-xs font-medium transition ${
                     selected
                       ? 'bg-gray-800 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -198,24 +198,30 @@ export default function StockCard({
         {historyLoading ? (
           <SkeletonCard height="h-56" />
         ) : historyError ? (
-          <p className="py-10 text-center text-sm text-red-600">{historyError}</p>
+          <p className="py-10 text-center text-sm text-red-600" role="alert">{historyError}</p>
         ) : visible.length < 2 ? (
-          <p className="py-10 text-center text-sm text-gray-500">
+          <p className="py-10 text-center text-sm text-gray-500" role="alert">
             Histórico indisponível para este período.
           </p>
         ) : (
-          <div className="h-56 w-full">
+          <div
+            className="h-56 w-full"
+            role="img"
+            aria-label={`Gráfico de evolução do preço de ${quote.symbol}, de ${formatFullDate(firstDate)} a ${formatFullDate(lastDate)}${
+              periodChange != null ? `, variação de ${formatPercent(periodChange)}` : ''
+            }`}
+          >
             <StockPriceChart data={visible} color={chartColor} />
           </div>
         )}
 
         {limitedHistory && (
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-gray-500">
             Histórico disponível apenas a partir de {formatFullDate(firstDate)}.
           </p>
         )}
         {hasLockedPeriod && (
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-500">
             Períodos maiores exigem um plano pago da brapi.
           </p>
         )}
@@ -224,7 +230,7 @@ export default function StockCard({
       {/* Indicadores */}
       <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-gray-50 px-3 py-2">
+          <div key={label} className="rounded-lg bg-gray-50 px-3 py-2 sm:py-1">
             <dt className="text-xs text-gray-500">{label}</dt>
             <dd className="text-sm font-semibold text-gray-800">{value}</dd>
           </div>

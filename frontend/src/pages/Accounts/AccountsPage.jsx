@@ -4,13 +4,15 @@ import { AccountCard } from '../../components/ui/AccountCard';
 import { AccountFormModal } from '../../components/ui/AccountFormModal';
 import { ConfirmDeleteModal } from '../../components/ui/ConfirmDeleteModal';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
+import { useToast } from '../../contexts/ToastContext';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 
 export function AccountsPage() {
+  const toast = useToast();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // só erro de carregamento (inline)
 
   // Modal de formulário
   const [formOpen, setFormOpen] = useState(false);
@@ -57,16 +59,14 @@ export function AccountsPage() {
     if (!deletingAccount) return;
     try {
       setDeleteLoading(true);
-      setError('');
       await deleteAccount(deletingAccount.id);
       setAccounts(prev => prev.filter(a => a.id !== deletingAccount.id));
       setDeleteOpen(false);
       setDeletingAccount(null);
+      toast.success('Conta excluída.');
     } catch (err) {
       setDeleteOpen(false);
-      setError(
-        err.response?.data?.message || 'Não foi possível excluir a conta.'
-      );
+      toast.error(err.response?.data?.message || 'Não foi possível excluir a conta.');
     } finally {
       setDeleteLoading(false);
     }
@@ -85,33 +85,34 @@ export function AccountsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 w-full max-w-3xl mx-auto" aria-busy={loading}>
       <div className="flex items-center justify-center w-full relative mt-5">
-        <h2 className="font-bold text-gray-700">Minhas contas</h2>
+        <h1 className="font-bold text-gray-700">Minhas contas</h1>
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
+          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
-          <AddOutlined fontSize="small" />
+          <AddOutlined fontSize="small" aria-hidden="true" />
           Adicionar
         </button>
       </div>
 
       {loading && (
         <div className="flex flex-col gap-3">
+          <p className="sr-only" role="status">Carregando contas...</p>
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
         </div>
       )}
 
-      {!loading && accounts.length === 0 && (
+      {!loading && !error && accounts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <SavingsOutlined className="text-gray-300" style={{ fontSize: 64 }} />
+          <SavingsOutlined className="text-gray-300" style={{ fontSize: 64 }} aria-hidden="true" />
           <p className="text-gray-500 font-medium">Nenhuma conta cadastrada</p>
-          <p className="text-gray-400 text-sm">Adicione sua primeira conta para começar.</p>
+          <p className="text-gray-500 text-sm">Adicione sua primeira conta para começar.</p>
           <button
             type="button"
             onClick={handleOpenCreate}
@@ -135,7 +136,9 @@ export function AccountsPage() {
         </div>
       )}
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      {error && (
+        <p role="alert" className="text-red-600 text-sm text-center">{error}</p>
+      )}
 
       <AccountFormModal
         open={formOpen}

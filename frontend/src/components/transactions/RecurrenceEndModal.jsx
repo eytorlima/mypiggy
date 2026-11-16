@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useId, useRef } from 'react';
+import { ModalShell } from '../ui/ModalShell';
+import { useModalTransition } from '../../hooks/useModalTransition';
 import StopCircleOutlined from '@mui/icons-material/StopCircleOutlined';
 
 const recurrenceLabel = {
@@ -9,61 +11,41 @@ const recurrenceLabel = {
 };
 
 export function RecurrenceEndModal({ open, transaction, loading, onClose, onConfirm }) {
-  const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
+  const titleId = useId();
 
-  const [lastTransaction, setLastTransaction] = useState(transaction);
-  useEffect(() => {
-    if (transaction) setLastTransaction(transaction);
-  }, [transaction]);
+  // Não deixa ESC nem clique fora fecharem enquanto a operação está em andamento
+  const handleClose = () => {
+    if (!loading) onClose();
+  };
+  const { mounted, visible } = useModalTransition(open, handleClose);
 
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const t = setTimeout(() => setVisible(true), 20);
-      return () => clearTimeout(t);
-    }
-    setVisible(false);
-    const t = setTimeout(() => setMounted(false), 250);
-    return () => clearTimeout(t);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleKey = (e) => e.key === 'Escape' && !loading && onClose();
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [open, loading, onClose]);
+  // Guarda a última transação para o texto não sumir durante a animação de saída
+  const lastTransaction = useRef(transaction);
+  if (transaction) lastTransaction.current = transaction;
 
   if (!mounted) return null;
 
-  const t = lastTransaction;
+  const t = lastTransaction.current;
   const label = t?.description || t?.categoryName || 'esta transação';
   const type = recurrenceLabel[t?.recurrencyType] || '';
 
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4
-                  transition-opacity duration-200 ease-out ${visible ? 'opacity-100' : 'opacity-0'}`}
-      onClick={() => !loading && onClose()}
-    >
-      <div
-        className={`bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center
-                    transition-all duration-300 ease-out
-                    ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+    <ModalShell visible={visible} onClose={handleClose} size="sm" titleId={titleId}>
+      <div className="text-center">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-3 w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center"
+        >
           <StopCircleOutlined />
         </div>
 
-        <h2 className="text-lg font-bold text-gray-800">Encerrar recorrência?</h2>
+        <h2 id={titleId} className="text-lg font-bold text-gray-800">Encerrar recorrência?</h2>
 
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-gray-600 break-words">
           A recorrência {type} de <span className="font-semibold">{label}</span> deixará de
           gerar novas transações.
         </p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-gray-500">
           As transações que já existem são mantidas. Esta ação não pode ser desfeita.
         </p>
 
@@ -71,7 +53,7 @@ export function RecurrenceEndModal({ open, transaction, loading, onClose, onConf
           <button
             type="button"
             disabled={loading}
-            onClick={onClose}
+            onClick={handleClose}
             className="py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold
                        hover:bg-gray-50 disabled:opacity-50 transition-colors hover:cursor-pointer"
           >
@@ -81,13 +63,13 @@ export function RecurrenceEndModal({ open, transaction, loading, onClose, onConf
             type="button"
             disabled={loading}
             onClick={onConfirm}
-            className="py-2.5 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600
+            className="py-2.5 rounded-lg bg-amber-600 text-white font-semibold hover:bg-amber-700
                        disabled:opacity-50 transition-colors hover:cursor-pointer"
           >
             {loading ? 'Encerrando...' : 'Encerrar'}
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }

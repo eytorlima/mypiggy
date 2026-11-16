@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,16 +6,20 @@ import { depositToPiggyBank, withdrawFromPiggyBank } from '../../services/PiggyB
 import { InputField } from '../ui/InputField';
 import { ModalShell } from '../ui/ModalShell';
 import { useModalTransition } from '../../hooks/useModalTransition';
+import { useToast } from '../../contexts/ToastContext';
 import { formatBRL } from '../../utils/formatCurrency';
 import { formatMoney, parseMoney, sanitizeMoney } from '../../utils/moneyUtils';
 import { moneyTextToCents } from '../../utils/piggyBankUtils';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 
+const MAX_MONEY = 999999999.99;
+
 const schema = z.object({
   amount: z
     .string()
     .refine((v) => !Number.isNaN(parseMoney(v)), 'Valor inválido')
-    .refine((v) => parseMoney(v) > 0, 'Informe um valor maior que zero'),
+    .refine((v) => parseMoney(v) > 0, 'Informe um valor maior que zero')
+    .refine((v) => parseMoney(v) <= MAX_MONEY, 'Valor muito alto'),
 });
 
 // mode: 'deposit' (guardar) | 'withdraw' (retirar)
@@ -23,6 +27,8 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
   const isDeposit = mode === 'deposit';
   const [accountId, setAccountId] = useState('');
   const [apiError, setApiError] = useState('');
+  const titleId = useId();
+  const toast = useToast();
   const { mounted, visible } = useModalTransition(open, onClose);
 
   // Guarda o último porquinho/modo: o pai zera ao fechar e o texto sumiria na animação de saída
@@ -44,13 +50,22 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
   const amountText = watch('amount');
   const account = accounts.find((a) => a.id === accountId);
 
-  // A cada abertura: limpa o valor e escolhe a primeira conta
+  // A cada abertura: limpa o valor e escolhe a primeira conta.
+  // `accounts` fica fora das dependências: recarregar a lista não pode apagar o que foi digitado.
   useEffect(() => {
     if (!open) return;
     setApiError('');
     setAccountId(accounts[0]?.id ?? '');
     reset({ amount: '0,00' });
-  }, [open, piggy, accounts, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, piggy?.id, reset]);
+
+  // Se a conta escolhida deixou de existir (ou ainda não havia contas), volta para a primeira
+  useEffect(() => {
+    if (open && (!accountId || !accounts.some((a) => a.id === accountId))) {
+      setAccountId(accounts[0]?.id ?? '');
+    }
+  }, [accounts, open, accountId]);
 
   const amountCents = (() => {
     const value = parseMoney(amountText);
@@ -82,6 +97,7 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
         ? await depositToPiggyBank(shownPiggy.id, payload)
         : await withdrawFromPiggyBank(shownPiggy.id, payload);
 
+      toast.success(shownIsDeposit ? 'Valor guardado no porquinho.' : 'Valor retirado do porquinho.');
       onSuccess(updated);
     } catch (err) {
       setApiError(err.response?.data?.message || 'Não foi possível concluir a operação.');
@@ -93,16 +109,17 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
   const newBalance = shownPiggy.balanceInCents + (shownIsDeposit ? amountCents : -amountCents);
 
   return (
-    <ModalShell visible={visible} onClose={onClose} size="sm">
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-bold text-gray-800">
+    <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <h2 id={titleId} className="min-w-0 break-words text-lg font-bold text-gray-800">
           {shownIsDeposit ? 'Guardar em' : 'Retirar de'} {shownPiggy.name}
         </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+          className="-mr-2 -mt-1 w-10 h-10 shrink-0 rounded-full flex items-center justify-center
+                     text-gray-500 hover:text-gray-700 hover:cursor-pointer"
         >
           <CloseOutlined />
         </button>
@@ -114,7 +131,10 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
       </p>
 
       {accounts.length === 0 ? (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p
+          role="status"
+          className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+        >
           Cadastre uma conta antes de {shownIsDeposit ? 'guardar' : 'retirar'} dinheiro.
         </p>
       ) : (
@@ -152,6 +172,8 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
             <InputField
               label="Valor (R$)"
               type="text"
+              inputMode="decimal"
+              maxLength={14}
               placeholder="0,00"
               register={register('amount', {
                 onChange: (e) => setValue('amount', sanitizeMoney(e.target.value)),
@@ -166,14 +188,14 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
             <button
               type="button"
               onClick={() => setValue('amount', formatMoney(shownPiggy.balanceInCents / 100))}
-              className="self-start -mt-2 text-xs font-semibold text-primary-600 hover:underline hover:cursor-pointer"
+              className="self-start -mt-2 py-1.5 text-xs font-semibold text-primary-700 hover:underline hover:cursor-pointer"
             >
               Retirar tudo ({formatBRL(shownPiggy.balanceInCents)})
             </button>
           )}
 
           {/* Resumo */}
-          <div className="text-xs text-gray-500 flex flex-col gap-0.5 -mt-1">
+          <div className="text-xs text-gray-500 flex flex-col gap-0.5 -mt-1" aria-live="polite">
             {shownIsDeposit && account && (
               <span>
                 Disponível na conta:{' '}
@@ -189,7 +211,11 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
             )}
           </div>
 
-          {apiError && <p className="text-red-500 text-sm text-center">{apiError}</p>}
+          {apiError && (
+            <p role="alert" className="text-red-600 text-sm text-center">
+              {apiError}
+            </p>
+          )}
 
           <button
             type="submit"

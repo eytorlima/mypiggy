@@ -6,12 +6,14 @@ import { CategoryItem } from '../../components/categories/CategoryItem';
 import { CategoryFormModal } from '../../components/categories/CategoryFormModal';
 import { CategoryDeleteModal } from '../../components/categories/CategoryDeleteModal';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
+import { useToast } from '../../contexts/ToastContext';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
 import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 
 export function CategoriesPage() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +125,7 @@ export function CategoriesPage() {
       await deleteCategory(deletingCategory.id);
       setCategories((prev) => prev.filter((c) => c.id !== deletingCategory.id));
       handleCloseDelete();
+      toast.success('Categoria excluída.');
     } catch (err) {
       // Mantém o modal aberto para o usuário ler o motivo (ex: transações vinculadas)
       setDeleteError(
@@ -134,7 +137,7 @@ export function CategoriesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 w-full max-w-3xl mx-auto" aria-busy={loading}>
       {/* Cabeçalho */}
       <div className="flex items-center justify-center w-full relative mt-5">
         <button
@@ -142,43 +145,47 @@ export function CategoriesPage() {
           // Rota fixa em vez de navigate(-1): funciona mesmo se a página for aberta direto pela URL
           onClick={() => navigate('/settings')}
           aria-label="Voltar"
-          className="absolute left-0 p-2 text-gray-500 hover:text-gray-700 hover:cursor-pointer"
+          className="absolute left-0 p-2 flex items-center text-gray-600 hover:text-gray-800 hover:cursor-pointer"
         >
-          <ArrowBackOutlined fontSize="small" /> Voltar
+          <ArrowBackOutlined fontSize="small" aria-hidden="true" />
+          {/* No celular só a seta: o título ocupa o centro */}
+          <span className="hidden sm:inline ml-1">Voltar</span>
         </button>
 
-        <h2 className="font-bold text-gray-700">Categorias</h2>
+        <h1 className="font-bold text-gray-700">Categorias</h1>
 
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
+          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
-          <AddOutlined fontSize="small" />
-          Nova categoria
+          <AddOutlined fontSize="small" aria-hidden="true" />
+          <span className="sm:hidden">Nova</span>
+          <span className="hidden sm:inline">Nova categoria</span>
         </button>
       </div>
 
       {loading && (
         <div className="flex flex-col gap-3">
+          <p className="sr-only" role="status">Carregando categorias...</p>
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
         </div>
       )}
 
-      {!loading && (
+      {!loading && !error && (
         <>
           {/* Minhas categorias */}
           <section className="flex flex-col gap-2">
-            <h3 className="mt-8 text-sm font-semibold text-gray-500 px-1">Minhas categorias</h3>
+            <h2 className="mt-8 text-sm font-semibold text-gray-500 px-1">Minhas categorias</h2>
 
             {custom.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-                <CategoryOutlined className="text-gray-300" style={{ fontSize: 56 }} />
+                <CategoryOutlined className="text-gray-300" style={{ fontSize: 56 }} aria-hidden="true" />
                 <p className="text-gray-500 font-medium">Nenhuma categoria personalizada</p>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-500 text-sm">
                   Crie categorias com o ícone e a cor que quiser.
                 </p>
                 <button
@@ -204,7 +211,7 @@ export function CategoriesPage() {
           {/* Padrão (somente leitura: sem onEdit/onDelete) */}
           {defaults.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold text-gray-500 px-1">Padrão</h3>
+              <h2 className="text-sm font-semibold text-gray-500 px-1">Padrão</h2>
               {defaults.map((c) => (
                 <CategoryItem key={c.id} category={c} />
               ))}
@@ -213,7 +220,9 @@ export function CategoriesPage() {
         </>
       )}
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      {error && (
+        <p role="alert" className="text-red-600 text-sm text-center">{error}</p>
+      )}
 
       <CategoryFormModal
         open={formOpen}

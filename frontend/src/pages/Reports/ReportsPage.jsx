@@ -12,14 +12,17 @@ import { formatBRL } from '../../utils/formatCurrency';
 import { currentMonth } from '../../utils/month';
 
 function ChartSkeleton({ height = 'h-64' }) {
-  return <div className={`${height} w-full animate-pulse rounded-xl bg-gray-200`} />;
+  return <div aria-hidden="true" className={`${height} w-full animate-pulse rounded-xl bg-gray-200`} />;
 }
 
 // Ocupa exatamente a altura do gráfico (h-64). Quando não há gráfico para mostrar
 // (sem dados, erro, tudo oculto), o card mantém o mesmo tamanho em vez de encolher.
-function ChartPlaceholder({ children, className = 'text-gray-500' }) {
+function ChartPlaceholder({ children, className = 'text-gray-500', role }) {
   return (
-    <div className={`flex h-64 items-center justify-center px-4 text-center text-sm ${className}`}>
+    <div
+      role={role}
+      className={`flex h-64 items-center justify-center px-4 text-center text-sm ${className}`}
+    >
       {children}
     </div>
   );
@@ -135,12 +138,16 @@ export function ReportsPage() {
   const hasData = !categoryLoading && !categoryError && allItems.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-28 pt-4">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 pt-4 pb-4" aria-busy={categoryLoading || monthlyLoading}>
       <h1 className="text-center text-lg font-bold uppercase tracking-wide text-gray-800">
         Relatórios
       </h1>
 
       <MonthSelector month={month} onChange={changeMonth} />
+
+      {(categoryLoading || monthlyLoading) && (
+        <p className="sr-only" role="status">Carregando relatórios...</p>
+      )}
 
       {/* ---------- Resumo do topo: entradas | saídas | saldo ---------- */}
       {!categoryError && (
@@ -153,13 +160,14 @@ export function ReportsPage() {
       {/* ---------- Gráficos lado a lado (empilham no celular) ---------- */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         {/* Gráfico por categoria */}
-        <section className="rounded-xl bg-white p-4 shadow">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex gap-1">
+        <section className="rounded-xl bg-white p-4 shadow" aria-label="Gráfico por categoria">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-1" role="group" aria-label="Tipo de transação">
               <button
                 type="button"
                 onClick={() => changeType('CREDIT')}
-                className={`rounded-lg px-3 py-1 text-sm font-medium transition hover:cursor-pointer ${
+                aria-pressed={type === 'CREDIT'}
+                className={`rounded-lg px-3 py-2 sm:py-1 text-sm font-medium transition hover:cursor-pointer ${
                   type === 'CREDIT'
                     ? 'bg-green-500 text-white'
                     : 'bg-green-50 text-green-700 hover:bg-green-100'
@@ -170,7 +178,8 @@ export function ReportsPage() {
               <button
                 type="button"
                 onClick={() => changeType('DEBIT')}
-                className={`rounded-lg px-3 py-1 text-sm font-medium transition hover:cursor-pointer ${
+                aria-pressed={type === 'DEBIT'}
+                className={`rounded-lg px-3 py-2 sm:py-1 text-sm font-medium transition hover:cursor-pointer ${
                   type === 'DEBIT'
                     ? 'bg-red-500 text-white'
                     : 'bg-red-50 text-red-700 hover:bg-red-100'
@@ -180,11 +189,12 @@ export function ReportsPage() {
               </button>
             </div>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1" role="group" aria-label="Tipo de gráfico">
               <button
                 type="button"
                 onClick={() => setView('pie')}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition hover:cursor-pointer ${
+                aria-pressed={view === 'pie'}
+                className={`rounded-lg px-3 py-2 sm:py-1 text-xs font-medium transition hover:cursor-pointer ${
                   view === 'pie' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
@@ -193,7 +203,8 @@ export function ReportsPage() {
               <button
                 type="button"
                 onClick={() => setView('bar')}
-                className={`rounded-lg px-3 py-1 text-xs font-medium transition hover:cursor-pointer ${
+                aria-pressed={view === 'bar'}
+                className={`rounded-lg px-3 py-2 sm:py-1 text-xs font-medium transition hover:cursor-pointer ${
                   view === 'bar' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600'
                 }`}
               >
@@ -203,14 +214,14 @@ export function ReportsPage() {
           </div>
 
           {/* Sempre renderizado (mostra R$ 0,00 sem dados) para a altura não variar */}
-          <p className="mb-2 text-center text-sm text-gray-500">
+          <p className="mb-2 text-center text-sm text-gray-500" aria-live="polite">
             Total exibido: <strong className="text-gray-800">{formatBRL(visibleTotal)}</strong>
           </p>
 
           {categoryLoading ? (
             <ChartSkeleton />
           ) : categoryError ? (
-            <ChartPlaceholder className="text-red-600">{categoryError}</ChartPlaceholder>
+            <ChartPlaceholder className="text-red-600" role="alert">{categoryError}</ChartPlaceholder>
           ) : allItems.length === 0 ? (
             <ChartPlaceholder>
               Nenhuma {type === 'DEBIT' ? 'saída' : 'entrada'} registrada neste mês.
@@ -236,9 +247,9 @@ export function ReportsPage() {
         </section>
 
         {/* Receitas x despesas por mês */}
-        <section className="rounded-xl bg-white p-6 shadow sm:p-8">
+        <section className="rounded-xl bg-white p-4 shadow sm:p-8">
           {monthlyError ? (
-            <p className="py-10 text-center text-sm text-red-600">{monthlyError}</p>
+            <p role="alert" className="py-10 text-center text-sm text-red-600">{monthlyError}</p>
           ) : monthlyLoading && !monthlyReport ? (
             <ChartSkeleton height="h-80" />
           ) : (

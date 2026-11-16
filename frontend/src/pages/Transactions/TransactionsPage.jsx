@@ -9,6 +9,7 @@ import { TransactionFormModal } from '../../components/transactions/TransactionF
 import { TransactionDeleteModal } from '../../components/transactions/TransactionDeleteModal';
 import { RecurrenceEndModal } from '../../components/transactions/RecurrenceEndModal';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
+import { useToast } from '../../contexts/ToastContext';
 import { formatBRL } from '../../utils/formatCurrency';
 import { monthRange, toLocalDateTime } from '../../utils/dateUtils';
 import AddOutlined from '@mui/icons-material/AddOutlined';
@@ -38,6 +39,7 @@ function dayLabel(dateStr) {
 
 export function TransactionsPage() {
   const { refreshKey } = useOutletContext();
+  const toast = useToast();
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -48,7 +50,7 @@ export function TransactionsPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // só erros de carregamento (inline)
 
   // Modal de formulário
   const [formOpen, setFormOpen] = useState(false);
@@ -64,7 +66,7 @@ export function TransactionsPage() {
   const [endingTransaction, setEndingTransaction] = useState(null);
   const [endLoading, setEndLoading] = useState(false);
 
-  /* Contas e categorias: carregadas uma vez */
+  /* Contas e categorias */
   async function loadAccounts() {
     try {
       setAccounts((await getAccounts()) || []);
@@ -74,9 +76,9 @@ export function TransactionsPage() {
   }
 
   useEffect(() => {
-  getCategories()
-    .then((data) => setCategories(data || []))
-    .catch(() => setError('Não foi possível carregar as categorias.'));
+    getCategories()
+      .then((data) => setCategories(data || []))
+      .catch(() => setError('Não foi possível carregar as categorias.'));
   }, []);
 
   useEffect(() => {
@@ -201,13 +203,13 @@ export function TransactionsPage() {
     if (!deletingTransaction) return;
     try {
       setDeleteLoading(true);
-      setError('');
       await deleteTransaction(deletingTransaction.id, scope);
       handleCloseDelete();
       refresh();
+      toast.success(scope === 'ONE' ? 'Transação excluída.' : 'Transações excluídas.');
     } catch (err) {
       handleCloseDelete();
-      setError(err.response?.data?.message || 'Não foi possível excluir a transação.');
+      toast.error(err.response?.data?.message || 'Não foi possível excluir a transação.');
     } finally {
       setDeleteLoading(false);
     }
@@ -227,13 +229,13 @@ export function TransactionsPage() {
     if (!endingTransaction) return;
     try {
       setEndLoading(true);
-      setError('');
       await deactivateRecurrence(endingTransaction.id);
       handleCloseEnd();
       refresh();
+      toast.success('Recorrência encerrada.');
     } catch (err) {
       handleCloseEnd();
-      setError(err.response?.data?.message || 'Não foi possível encerrar a recorrência.');
+      toast.error(err.response?.data?.message || 'Não foi possível encerrar a recorrência.');
     } finally {
       setEndLoading(false);
     }
@@ -242,18 +244,20 @@ export function TransactionsPage() {
   const isSearching = query.search.trim() !== '';
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 w-full max-w-4xl mx-auto" aria-busy={loading}>
       {/* Cabeçalho */}
       <div className="flex items-center justify-center w-full relative mt-5">
-        <h2 className="font-bold text-gray-700">Transações</h2>
+        <h1 className="font-bold text-gray-700">Transações</h1>
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
+          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
-          <AddOutlined fontSize="small" />
-          Nova transação
+          <AddOutlined fontSize="small" aria-hidden="true" />
+          {/* No celular o título ocupa o centro: texto curto evita sobreposição */}
+          <span className="sm:hidden">Nova</span>
+          <span className="hidden sm:inline">Nova transação</span>
         </button>
       </div>
 
@@ -266,19 +270,19 @@ export function TransactionsPage() {
 
       {/* Resumo da lista filtrada */}
       {!loading && transactions.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm text-center">
-            <p className="text-xs text-gray-400">Receitas</p>
-            <p className="font-bold text-sm text-primary-600">{formatBRL(totals.income)}</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="bg-white border border-gray-100 rounded-2xl p-2 sm:p-3 shadow-sm text-center min-w-0">
+            <p className="text-xs text-gray-500">Receitas</p>
+            <p className="font-bold text-xs sm:text-sm text-primary-700 break-words">{formatBRL(totals.income)}</p>
           </div>
-          <div className="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm text-center">
-            <p className="text-xs text-gray-400">Despesas</p>
-            <p className="font-bold text-sm text-red-600">{formatBRL(totals.expense)}</p>
+          <div className="bg-white border border-gray-100 rounded-2xl p-2 sm:p-3 shadow-sm text-center min-w-0">
+            <p className="text-xs text-gray-500">Despesas</p>
+            <p className="font-bold text-xs sm:text-sm text-red-600 break-words">{formatBRL(totals.expense)}</p>
           </div>
-          <div className="bg-white border border-gray-100 rounded-2xl p-3 shadow-sm text-center">
-            <p className="text-xs text-gray-400">Resultado</p>
+          <div className="bg-white border border-gray-100 rounded-2xl p-2 sm:p-3 shadow-sm text-center min-w-0">
+            <p className="text-xs text-gray-500">Resultado</p>
             <p
-              className={`font-bold text-sm ${totals.result < 0 ? 'text-red-600' : 'text-primary-600'}`}
+              className={`font-bold text-xs sm:text-sm break-words ${totals.result < 0 ? 'text-red-600' : 'text-primary-700'}`}
             >
               {formatBRL(totals.result)}
             </p>
@@ -288,6 +292,7 @@ export function TransactionsPage() {
 
       {loading && (
         <div className="flex flex-col gap-3">
+          <p className="sr-only" role="status">Carregando transações...</p>
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
           <SkeletonCard height="h-20" />
@@ -296,9 +301,9 @@ export function TransactionsPage() {
 
       {!loading && transactions.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <ReceiptLongOutlined className="text-gray-300" style={{ fontSize: 64 }} />
+          <ReceiptLongOutlined className="text-gray-300" style={{ fontSize: 64 }} aria-hidden="true" />
           <p className="text-gray-500 font-medium">Nenhuma transação encontrada</p>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 text-sm">
             {isSearching
               ? 'Nenhum resultado para a pesquisa. Tente outros termos.'
               : 'Ajuste os filtros ou registre uma nova transação.'}
@@ -316,9 +321,9 @@ export function TransactionsPage() {
       {!loading &&
         groups.map((group) => (
           <section key={group.date} className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold text-gray-500 capitalize px-1">
+            <h2 className="text-sm font-semibold text-gray-500 capitalize px-1">
               {dayLabel(group.date)}
-            </h3>
+            </h2>
             {group.items.map((t) => (
               <TransactionItem
                 key={t.id}
@@ -331,7 +336,9 @@ export function TransactionsPage() {
           </section>
         ))}
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      {error && (
+        <p role="alert" className="text-red-600 text-sm text-center">{error}</p>
+      )}
 
       <TransactionFormModal
         open={formOpen}

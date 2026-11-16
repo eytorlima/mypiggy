@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { SelectField } from '../ui/SelectField';
 import { toLocalDateTime } from '../../utils/dateUtils';
 import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
@@ -27,6 +27,8 @@ export const DEFAULT_FILTERS = () => ({
  * onChange recebe o objeto de filtros completo e atualizado.
  */
 export function TransactionFilters({ filters, onChange, accounts, categories }) {
+  const monthId = useId();
+
   const accountOptions = useMemo(
     () => [
       { value: '', label: 'Todas as contas' },
@@ -67,28 +69,34 @@ export function TransactionFilters({ filters, onChange, accounts, categories }) 
     filters.search;
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm [&_label]:text-gray-700">
+    <div
+      role="search"
+      className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm [&_label]:text-gray-700"
+    >
       {/* Caixa de pesquisa */}
       <div className="relative mb-3">
         <SearchOutlined
           fontSize="small"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          aria-hidden="true"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
         />
         <input
-          type="text"
+          type="search"
           value={filters.search}
           onChange={(e) => handleSearch(e.target.value)}
+          maxLength={100}
           placeholder="Pesquisar por descrição, conta, categoria..."
           aria-label="Pesquisar transações"
           className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
-                     focus:outline-none focus:border-primary-500"
+                     focus:outline-none focus:border-primary-500 [&::-webkit-search-cancel-button]:hidden"
         />
         {filters.search && (
           <button
             type="button"
             onClick={() => update('search', '')}
             aria-label="Limpar pesquisa"
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center
+                       text-gray-500 hover:text-gray-700 hover:cursor-pointer"
           >
             <CloseOutlined fontSize="small" />
           </button>
@@ -96,13 +104,16 @@ export function TransactionFilters({ filters, onChange, accounts, categories }) 
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Mês</label>
+        <div className="flex flex-col gap-1 min-w-0">
+          <label htmlFor={monthId} className="text-sm font-medium text-gray-700">Mês</label>
           <input
+            id={monthId}
             type="month"
+            min="2000-01"
+            max="2100-12"
             value={filters.month}
             onChange={(e) => update('month', e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
+            className="w-full min-w-0 min-h-[40px] px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
                        focus:outline-none focus:border-primary-500"
           />
         </div>
@@ -133,9 +144,9 @@ export function TransactionFilters({ filters, onChange, accounts, categories }) 
         <button
           type="button"
           onClick={() => onChange(DEFAULT_FILTERS())}
-          className="mt-3 flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:cursor-pointer"
+          className="mt-3 py-1.5 flex items-center gap-1 text-sm font-semibold text-primary-700 hover:text-primary-800 hover:cursor-pointer"
         >
-          <FilterAltOffOutlined fontSize="small" />
+          <FilterAltOffOutlined fontSize="small" aria-hidden="true" />
           Limpar filtros
         </button>
       )}

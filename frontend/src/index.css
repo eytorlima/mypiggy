@@ -27,11 +27,63 @@
   --color-accent-900: #831843;
 }
 
-body {
-  font-family: var(--font-sans);
+/* ---------- Base ---------- */
+
+html {
+  /* Evita que o iOS aumente o texto sozinho ao girar a tela */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Rolagem suave só para quem não pediu movimento reduzido (ver abaixo) */
+  scroll-behavior: smooth;
 }
 
-/* Faixa rolante da tela de Ações: a lista é duplicada no JSX e desloca -50% em loop */
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Impede rolagem horizontal causada por algum elemento largo */
+  overflow-x: hidden;
+}
+
+/* ---------- Acessibilidade ---------- */
+
+/* Inputs já têm destaque próprio no foco; não duplica */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+}
+
+/* iOS dá zoom automático em inputs com fonte menor que 16px ao focar,
+   o que desloca a tela e "esconde" campos. 16px no mobile evita isso. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+
+/* ---------- Movimento reduzido ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Faixa rolante da tela de Ações ---------- */
+
+/* A lista é duplicada no JSX e desloca -50% em loop */
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

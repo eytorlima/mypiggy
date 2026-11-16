@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ const schema = z.object({
 export function EditNameModal({ open, currentName, onClose, onSuccess }) {
   const { mounted, visible } = useModalTransition(open, onClose);
   const [apiError, setApiError] = useState('');
+  const titleId = useId();
 
   const {
     register,
@@ -56,25 +57,28 @@ export function EditNameModal({ open, currentName, onClose, onSuccess }) {
   if (!mounted) return null;
 
   return (
-    <ModalShell visible={visible} onClose={onClose} size="sm">
+    <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-        <h3 className="font-bold text-gray-700 text-center">Editar nome</h3>
+        <h2 id={titleId} className="font-bold text-gray-700 text-center">Editar nome</h2>
 
         <ModalField
           label="Nome"
           autoComplete="name"
+          maxLength={100}
           register={register('name')}
           error={errors.name?.message}
         />
 
-        {apiError && <p className="text-red-700 text-sm text-center">{apiError}</p>}
+        {apiError && (
+          <p role="alert" className="text-red-700 text-sm text-center">{apiError}</p>
+        )}
 
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-600 text-sm font-semibold
+            className="flex-1 min-h-10 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold
                        hover:cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancelar
@@ -82,7 +86,7 @@ export function EditNameModal({ open, currentName, onClose, onSuccess }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 h-10 rounded-lg bg-primary-500 text-white text-sm font-semibold
+            className="flex-1 min-h-10 rounded-lg bg-primary-500 text-white text-sm font-semibold
                        hover:cursor-pointer hover:bg-primary-600 transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Salvando...' : 'Salvar'}

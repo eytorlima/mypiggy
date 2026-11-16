@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ModalShell } from '../ui/ModalShell';
 import { useModalTransition } from '../../hooks/useModalTransition';
 import { formatBRL } from '../../utils/formatCurrency';
 
 export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, onClose, onConfirm }) {
   const [returnAccountId, setReturnAccountId] = useState('');
+  const titleId = useId();
   const { mounted, visible } = useModalTransition(open, onClose);
 
   // Guarda o último porquinho: o pai zera ao fechar e o nome sumiria durante a animação de saída
@@ -12,9 +13,18 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
   if (piggy) lastPiggy.current = piggy;
   const shown = piggy ?? lastPiggy.current;
 
+  // Escolhe a primeira conta só ao abrir (recarregar a lista não pode trocar a escolha)
   useEffect(() => {
     if (open) setReturnAccountId(accounts[0]?.id ?? '');
-  }, [open, accounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Se a conta escolhida deixou de existir, volta para a primeira
+  useEffect(() => {
+    if (open && returnAccountId && !accounts.some((a) => a.id === returnAccountId)) {
+      setReturnAccountId(accounts[0]?.id ?? '');
+    }
+  }, [accounts, open, returnAccountId]);
 
   if (!mounted || !shown) return null;
 
@@ -22,9 +32,11 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
   const missingAccount = hasBalance && !returnAccountId;
 
   return (
-    <ModalShell visible={visible} onClose={onClose} size="sm">
-      <h2 className="text-lg font-bold text-gray-800 mb-2">Excluir porquinho</h2>
-      <p className="text-sm text-gray-600">
+    <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
+      <h2 id={titleId} className="text-lg font-bold text-gray-800 mb-2">
+        Excluir porquinho
+      </h2>
+      <p className="text-sm text-gray-600 break-words">
         Tem certeza que deseja excluir <span className="font-semibold">{shown.name}</span>? Essa
         ação não pode ser desfeita.
       </p>
@@ -37,7 +49,9 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
           </p>
 
           {accounts.length === 0 ? (
-            <p className="text-sm text-red-600">Cadastre uma conta para receber o valor.</p>
+            <p role="status" className="text-sm text-red-600">
+              Cadastre uma conta para receber o valor.
+            </p>
           ) : (
             <div className="flex flex-col gap-1">
               <label htmlFor="piggy-return-account" className="text-sm font-medium text-gray-700">
@@ -60,7 +74,10 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
       )}
 
       {error && (
-        <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p
+          role="alert"
+          className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+        >
           {error}
         </p>
       )}

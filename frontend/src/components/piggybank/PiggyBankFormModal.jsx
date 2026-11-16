@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,6 +6,7 @@ import { createPiggyBank, updatePiggyBank } from '../../services/PiggyBankServic
 import { InputField } from '../ui/InputField';
 import { ModalShell } from '../ui/ModalShell';
 import { useModalTransition } from '../../hooks/useModalTransition';
+import { useToast } from '../../contexts/ToastContext';
 import { colorMap } from '../../utils/accountUtils';
 import { formatMoney, parseMoney, sanitizeMoney } from '../../utils/moneyUtils';
 import {
@@ -21,6 +22,9 @@ import LockOutlined from '@mui/icons-material/LockOutlined';
 
 const COLOR_KEYS = Object.keys(colorMap);
 const ICON_KEYS = Object.keys(piggyIconMap);
+
+const MAX_GOAL = 999999999.99;
+const MAX_DATE = '2100-12-31';
 
 /* ---------- Taxa de rendimento ("10,5" -> 10.5) ---------- */
 
@@ -60,12 +64,24 @@ function buildSchema(originalDate) {
             path: ['goal'],
             message: 'Informe o valor da meta (maior que zero)',
           });
+        } else if (goal > MAX_GOAL) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['goal'],
+            message: 'Valor muito alto (máximo R$ 999.999.999,99)',
+          });
         }
         if (data.targetDate && data.targetDate < todayInput() && data.targetDate !== originalDate) {
           ctx.addIssue({
             code: 'custom',
             path: ['targetDate'],
             message: 'O prazo deve ser hoje ou uma data futura',
+          });
+        } else if (data.targetDate > MAX_DATE) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['targetDate'],
+            message: 'Prazo muito distante (máximo 31/12/2100)',
           });
         }
       }
@@ -96,11 +112,12 @@ const EMPTY_VALUES = {
 
 function GoalToggle({ hasGoal, onChange }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700">Tipo</label>
+    <div className="flex flex-col gap-1" role="group" aria-label="Tipo de porquinho">
+      <span className="text-sm font-medium text-gray-700">Tipo</span>
 
       <div className="relative grid grid-cols-2 p-1 bg-gray-100 rounded-lg">
         <div
+          aria-hidden="true"
           className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-md bg-white shadow
                       transition-transform duration-200 ease-out
                       ${hasGoal ? 'translate-x-full' : 'translate-x-0'}`}
@@ -110,7 +127,7 @@ function GoalToggle({ hasGoal, onChange }) {
           onClick={() => onChange(false)}
           aria-pressed={!hasGoal}
           className={`relative z-10 py-2 text-sm font-semibold rounded-md transition-colors hover:cursor-pointer
-                      ${!hasGoal ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+                      ${!hasGoal ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'}`}
         >
           Porquinho livre
         </button>
@@ -119,7 +136,7 @@ function GoalToggle({ hasGoal, onChange }) {
           onClick={() => onChange(true)}
           aria-pressed={hasGoal}
           className={`relative z-10 py-2 text-sm font-semibold rounded-md transition-colors hover:cursor-pointer
-                      ${hasGoal ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+                      ${hasGoal ? 'text-primary-700' : 'text-gray-500 hover:text-gray-700'}`}
         >
           Meta
         </button>
@@ -140,6 +157,8 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
   const isEdit = !!piggy;
   const isEmergency = !!piggy?.isEmergency;
   const [apiError, setApiError] = useState('');
+  const titleId = useId();
+  const toast = useToast();
   const { mounted, visible } = useModalTransition(open, onClose);
 
   // O resolver lê o prazo original por ref: o schema acompanha o porquinho aberto
@@ -204,6 +223,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         ? await updatePiggyBank(piggy.id, payload)
         : await createPiggyBank(payload);
 
+      toast.success(isEdit ? 'Porquinho atualizado.' : 'Porquinho criado com sucesso!');
       onSuccess(saved, isEdit);
     } catch (err) {
       setApiError(err.response?.data?.message || 'Erro ao salvar porquinho.');
@@ -213,17 +233,18 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
   if (!mounted) return null;
 
   return (
-    <ModalShell visible={visible} onClose={onClose}>
+    <ModalShell visible={visible} onClose={onClose} titleId={titleId}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-gray-800">
+        <h2 id={titleId} className="text-lg font-bold text-gray-800">
           {isEdit ? 'Editar porquinho' : 'Novo porquinho'}
         </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="text-gray-400 hover:text-gray-600 hover:cursor-pointer"
+          className="-mr-2 w-10 h-10 rounded-full flex items-center justify-center
+                     text-gray-500 hover:text-gray-700 hover:cursor-pointer"
         >
           <CloseOutlined />
         </button>
@@ -240,6 +261,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         {/* Prévia */}
         <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
           <div
+            aria-hidden="true"
             className="w-12 h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
             style={{ backgroundColor: colorMap[selectedColor] || colorMap.green }}
           >
@@ -253,10 +275,10 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         {/* Nome (fixo na reserva de emergência) */}
         {isEmergency ? (
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Nome</label>
+            <span className="text-sm font-medium text-gray-700">Nome</span>
             <div className="flex items-center gap-2 h-[40px] px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500">
-              <LockOutlined style={{ fontSize: 16 }} />
-              {piggy.name}
+              <LockOutlined style={{ fontSize: 16 }} aria-hidden="true" />
+              <span className="truncate">{piggy.name}</span>
             </div>
             <p className="text-xs text-gray-500">
               O nome da reserva de emergência não pode ser alterado.
@@ -266,6 +288,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
           <InputField
             label="Nome"
             placeholder="Ex: Viagem, Notebook novo..."
+            maxLength={100}
             register={register('name')}
             error={errors.name?.message}
           />
@@ -274,6 +297,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         <InputField
           label="Descrição (opcional)"
           placeholder="Para que é este dinheiro?"
+          maxLength={255}
           register={register('description')}
           error={errors.description?.message}
         />
@@ -296,6 +320,8 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
               <InputField
                 label="Valor da meta (R$)"
                 type="text"
+                inputMode="decimal"
+                maxLength={14}
                 placeholder="0,00"
                 register={register('goal', {
                   onChange: (e) => setValue('goal', sanitizeMoney(e.target.value)),
@@ -309,6 +335,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
             <InputField
               label="Prazo (opcional)"
               type="date"
+              max={MAX_DATE}
               register={register('targetDate')}
               error={errors.targetDate?.message}
             />
@@ -320,6 +347,8 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
           <InputField
             label="Rendimento anual (% a.a., opcional)"
             type="text"
+            inputMode="decimal"
+            maxLength={9}
             placeholder="Ex: 10,5"
             register={register('annualRate', {
               onChange: (e) => setValue('annualRate', sanitizeRate(e.target.value)),
@@ -333,46 +362,52 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
 
         {/* Seletor de cor */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Cor</label>
-          <div className="flex gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-700">Cor</span>
+          <div className="flex gap-2 flex-wrap" role="group" aria-label="Cor">
             {Object.entries(colorMap).map(([key, hex]) => (
               <button
                 key={key}
                 type="button"
-                aria-label={key}
+                aria-label={`Cor ${key}`}
+                aria-pressed={selectedColor === key}
                 onClick={() => setValue('color', key, { shouldValidate: true })}
-                className={`w-8 h-8 rounded-full border-2 transition-all hover:cursor-pointer
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full border-2 transition-all hover:cursor-pointer
                   ${selectedColor === key ? 'border-gray-800 scale-110' : 'border-transparent'}`}
                 style={{ backgroundColor: hex }}
               />
             ))}
           </div>
-          {errors.color && <p className="text-red-500 text-xs">{errors.color.message}</p>}
+          {errors.color && <p className="text-red-600 text-xs">{errors.color.message}</p>}
         </div>
 
         {/* Seletor de ícone */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Ícone</label>
-          <div className="flex gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-700">Ícone</span>
+          <div className="flex gap-2 flex-wrap" role="group" aria-label="Ícone">
             {Object.entries(piggyIconMap).map(([key, icon]) => (
               <button
                 key={key}
                 type="button"
-                aria-label={key}
+                aria-label={`Ícone ${key}`}
+                aria-pressed={selectedIcon === key}
                 onClick={() => setValue('icon', key, { shouldValidate: true })}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-all hover:cursor-pointer
                   ${selectedIcon === key
-                    ? 'border-primary-500 bg-primary-50 text-primary-600'
-                    : 'border-gray-200 text-gray-400 hover:border-gray-400'}`}
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}
               >
                 {icon}
               </button>
             ))}
           </div>
-          {errors.icon && <p className="text-red-500 text-xs">{errors.icon.message}</p>}
+          {errors.icon && <p className="text-red-600 text-xs">{errors.icon.message}</p>}
         </div>
 
-        {apiError && <p className="text-red-500 text-sm text-center">{apiError}</p>}
+        {apiError && (
+          <p role="alert" className="text-red-600 text-sm text-center">
+            {apiError}
+          </p>
+        )}
 
         <button
           type="submit"

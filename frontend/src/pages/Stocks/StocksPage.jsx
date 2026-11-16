@@ -20,7 +20,8 @@ function TickerChip({ symbol, active, onSelect, onRemove }) {
       <button
         type="button"
         onClick={() => onSelect(symbol)}
-        className="py-1 pl-3 pr-1.5 hover:cursor-pointer"
+        aria-pressed={active}
+        className="py-2 sm:py-1 pl-3 pr-1.5 hover:cursor-pointer"
       >
         {symbol}
       </button>
@@ -28,9 +29,9 @@ function TickerChip({ symbol, active, onSelect, onRemove }) {
         type="button"
         onClick={() => onRemove(symbol)}
         aria-label={`Remover ${symbol} dos favoritos`}
-        className="py-1 pl-0.5 pr-2 opacity-60 hover:cursor-pointer hover:opacity-100"
+        className="py-2 sm:py-1 pl-0.5 pr-3 sm:pr-2 opacity-70 hover:cursor-pointer hover:opacity-100"
       >
-        <CloseIcon style={{ fontSize: 14 }} />
+        <CloseIcon style={{ fontSize: 14 }} aria-hidden="true" />
       </button>
     </span>
   );
@@ -113,7 +114,7 @@ export function StocksPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 pb-28 pt-4">
+    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 pt-4 pb-4">
       <h1 className="text-center text-lg font-bold uppercase tracking-wide text-gray-800">
         Ações
       </h1>
@@ -148,8 +149,8 @@ export function StocksPage() {
       <div ref={resultRef} className="scroll-mt-4 space-y-4">
         {!symbol && (
           <section className="rounded-xl bg-white p-6 text-center shadow">
-            <ShowChartIcon className="text-primary-500" style={{ fontSize: 40 }} />
-            <p className="mt-2 text-sm text-gray-600">
+            <ShowChartIcon className="text-primary-500" style={{ fontSize: 40 }} aria-hidden="true" />
+            <p className="mt-2 text-sm text-gray-600" role="alert">
               Busque uma ação pelo ticker ou pelo nome da empresa, ou escolha uma das principais
               ações abaixo, para ver a cotação e o gráfico dos últimos 7 pregões.
             </p>

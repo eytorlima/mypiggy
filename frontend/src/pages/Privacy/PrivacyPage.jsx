@@ -2,18 +2,20 @@ import { Link } from 'react-router-dom';
 
 export function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
 
       {/* Header */}
-      <header className="bg-primary-500 text-white py-8 px-6 text-center">
-        <Link
-          to="/register"
-          className="absolute left-6 top-8 text-white text-sm hover:underline"
-        >
-          ← Voltar ao cadastro
-        </Link>
-        <h1 className="text-3xl font-bold">Política de Privacidade</h1>
-        <p className="text-sm mt-2 opacity-80">Última atualização: junho de 2026</p>
+      <header className="bg-primary-500 text-white py-6 sm:py-8 px-6 text-center">
+        <div className="max-w-3xl mx-auto text-left sm:text-center relative">
+          <Link
+            to="/register"
+            className="inline-block text-white text-sm underline sm:no-underline sm:hover:underline sm:absolute sm:left-0 sm:top-1"
+          >
+            ← Voltar ao cadastro
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold mt-3 sm:mt-0 text-center">Política de Privacidade</h1>
+          <p className="text-sm mt-2 text-center">Última atualização: junho de 2026</p>
+        </div>
       </header>
 
       {/* Conteúdo */}
@@ -123,7 +125,7 @@ export function PrivacyPage() {
             serão comunicadas na própria plataforma. A data de "Última atualização" no topo desta
             página sempre refletirá a versão mais recente.
           </p>
-          <p className="text-sm text-gray-400 mt-2">Versão atual: junho de 2026.</p>
+          <p className="text-sm text-gray-500 mt-2">Versão atual: junho de 2026.</p>
         </section>
 
       </main>

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { getSettings, updateSettings } from '../../services/userService';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
@@ -21,8 +22,8 @@ function Section({ icon, title, children }) {
   return (
     <section className="flex flex-col gap-3 rounded-xl border border-gray-300 bg-white p-4 shadow-xs">
       <div className="flex items-center gap-2 text-gray-700">
-        {icon}
-        <h3 className="font-semibold">{title}</h3>
+        <span aria-hidden="true">{icon}</span>
+        <h2 className="font-semibold">{title}</h2>
       </div>
       {children}
     </section>
@@ -40,10 +41,12 @@ function InfoRow({ label, value }) {
 
 // Campo fixo: mostra o valor num select desabilitado (única opção possível)
 function FixedSelect({ label, value, labels }) {
+  const id = useId();
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-gray-500">{label}</label>
+      <label htmlFor={id} className="text-xs font-medium text-gray-500">{label}</label>
       <select
+        id={id}
         disabled
         value={value}
         onChange={() => {}}
@@ -56,11 +59,12 @@ function FixedSelect({ label, value, labels }) {
 }
 
 const secondaryButton =
-  'flex-1 h-10 rounded-lg border border-primary-500 text-primary-500 text-sm font-semibold ' +
+  'flex-1 min-h-10 rounded-lg border border-primary-500 text-primary-700 text-sm font-semibold ' +
   'hover:cursor-pointer hover:bg-primary-500 hover:text-white transition-colors';
 
 export function SettingsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { user, logout, updateUser } = useAuth();
 
   const [settings, setSettings] = useState(null);
@@ -71,20 +75,9 @@ export function SettingsPage() {
   const [nameOpen, setNameOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
 
-  // Aviso curto no topo (sucesso ou erro); some sozinho
-  const [feedback, setFeedback] = useState(null);
-  const feedbackTimer = useRef(null);
-
   useEffect(() => {
     loadSettings();
-    return () => clearTimeout(feedbackTimer.current);
   }, []);
-
-  function showFeedback(type, text) {
-    clearTimeout(feedbackTimer.current);
-    setFeedback({ type, text });
-    feedbackTimer.current = setTimeout(() => setFeedback(null), 3500);
-  }
 
   async function loadSettings() {
     try {
@@ -109,7 +102,7 @@ export function SettingsPage() {
       setSettings(saved);
     } catch (err) {
       setSettings(previous);
-      showFeedback('error', err.response?.data?.message || 'Não foi possível salvar a preferência.');
+      toast.error(err.response?.data?.message || 'Não foi possível salvar a preferência.');
     } finally {
       setSavingNotifications(false);
     }
@@ -118,12 +111,12 @@ export function SettingsPage() {
   function handleNameSuccess(profile) {
     updateUser({ name: profile.name }); // o nome novo aparece no app sem novo login
     setNameOpen(false);
-    showFeedback('success', 'Nome atualizado com sucesso.');
+    toast.success('Nome atualizado com sucesso.');
   }
 
   function handlePasswordSuccess() {
     setPasswordOpen(false);
-    showFeedback('success', 'Senha alterada com sucesso.');
+    toast.success('Senha alterada com sucesso.');
   }
 
   function handleLogout() {
@@ -132,27 +125,15 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 w-full max-w-2xl mx-auto">
-      <h2 className="font-bold text-gray-700 text-center mt-5">Configurações</h2>
-
-      {feedback && (
-        <p
-          role="status"
-          className={`rounded-lg px-3 py-2 text-sm text-center
-                      ${feedback.type === 'success'
-                        ? 'bg-primary-100 text-primary-800'
-                        : 'bg-white border border-red-500 text-red-700'}`}
-        >
-          {feedback.text}
-        </p>
-      )}
+    <div className="flex flex-col gap-4 p-4 w-full max-w-2xl mx-auto" aria-busy={loading}>
+      <h1 className="font-bold text-gray-700 text-center mt-5">Configurações</h1>
 
       {/* Perfil */}
       <Section icon={<PersonOutlined fontSize="small" />} title="Perfil">
         <InfoRow label="Nome" value={user?.name} />
         <InfoRow label="E-mail" value={user?.email} />
 
-        <div className="flex gap-3 mt-1">
+        <div className="flex flex-col min-[420px]:flex-row gap-3 mt-1">
           <button type="button" onClick={() => setNameOpen(true)} className={secondaryButton}>
             Editar nome
           </button>
@@ -166,6 +147,7 @@ export function SettingsPage() {
       <Section icon={<TuneOutlined fontSize="small" />} title="Preferências">
         {loading && (
           <div className="flex flex-col gap-3">
+            <p className="sr-only" role="status">Carregando preferências...</p>
             <SkeletonCard height="h-10" />
             <SkeletonCard height="h-10" />
             <SkeletonCard height="h-10" />
@@ -174,11 +156,11 @@ export function SettingsPage() {
 
         {!loading && loadError && (
           <div className="flex flex-col items-center gap-2 py-2">
-            <p className="text-red-700 text-sm text-center">{loadError}</p>
+            <p role="alert" className="text-red-700 text-sm text-center">{loadError}</p>
             <button
               type="button"
               onClick={loadSettings}
-              className="px-4 py-1.5 rounded-lg bg-primary-500 text-white text-sm font-semibold
+              className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold
                          hover:cursor-pointer hover:bg-primary-600 transition-colors"
             >
               Tentar de novo
@@ -193,7 +175,7 @@ export function SettingsPage() {
             <FixedSelect label="Fuso horário" value={settings.timeZone} labels={TIME_ZONE_LABELS} />
 
             <div className="flex items-center justify-between gap-4 pt-1">
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <span className="text-sm font-medium text-gray-700">Notificações</span>
                 <span className="text-xs text-gray-500">Lembretes e avisos dentro do sistema</span>
               </div>
@@ -213,11 +195,11 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={() => navigate('/categories')}
-          className="flex items-center justify-between rounded-lg border border-gray-300 px-3 h-11 text-sm
+          className="flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 min-h-11 text-sm text-left
                      text-gray-700 hover:cursor-pointer hover:border-primary-500 transition-colors"
         >
           Gerenciar categorias personalizadas
-          <ChevronRightOutlined fontSize="small" className="text-gray-400" />
+          <ChevronRightOutlined fontSize="small" className="shrink-0 text-gray-500" aria-hidden="true" />
         </button>
       </Section>
 
@@ -226,7 +208,7 @@ export function SettingsPage() {
         <button
           type="button"
           onClick={handleLogout}
-          className="h-10 rounded-lg border border-red-500 text-red-500 text-sm font-semibold
+          className="min-h-10 rounded-lg border border-red-500 text-red-600 text-sm font-semibold
                      hover:cursor-pointer hover:bg-red-500 hover:text-white transition-colors"
         >
           Sair

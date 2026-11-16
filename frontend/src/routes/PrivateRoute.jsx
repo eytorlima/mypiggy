@@ -6,8 +6,8 @@ export function PrivateRoute({ children}) {
 
     if (loading) {
         return (
-            <div className='flex items-center justify-center h-screen'>
-                <p className='text-gray-500'>Carregando...</p>
+            <div className='flex items-center justify-center min-h-dvh'>
+                <p role="status" className='text-gray-500'>Carregando...</p>
             </div>
         );
     }

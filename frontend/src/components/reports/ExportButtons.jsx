@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { getAccounts } from '../../services/accountService';
 import { getCategories } from '../../services/categoryService';
 import { exportCsv, exportPdf } from '../../services/reportService';
+import { useToast } from '../../contexts/ToastContext';
 import { localDateTimeToDateInput, monthRange } from '../../utils/dateUtils';
 import { downloadFile } from '../../utils/downloadFile';
 import MultiSelectFilter from './MultiSelectFilter';
 
 const MAX_YEARS = 5; // mesmo limite do backend
+const MIN_DATE = '2000-01-01';
+const MAX_DATE = '2100-12-31';
 
 const TYPE_OPTIONS = [
   { value: 'CREDIT', label: 'Receitas', active: 'bg-green-500 text-white', idle: 'bg-green-50 text-green-700 hover:bg-green-100' },
@@ -28,6 +31,7 @@ function currentMonthRange() {
 // Mesma validação do backend, para o usuário ver o erro sem esperar a requisição
 function validate(start, end, types) {
   if (!start || !end) return 'Informe a data inicial e a data final.';
+  if (start < MIN_DATE || end > MAX_DATE) return 'Informe datas entre 2000 e 2100.';
   if (start > end) return 'A data inicial não pode ser posterior à data final.';
 
   const limit = new Date(`${start}T00:00:00`);
@@ -55,7 +59,7 @@ function openPicker(event) {
 }
 
 const DATE_INPUT_CLASS =
-  'h-10 w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 ' +
+  'h-10 w-full min-w-0 cursor-pointer rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 ' +
   'shadow-sm outline-none transition hover:border-gray-400 hover:bg-gray-100 focus:border-primary-700 ' +
   'disabled:cursor-not-allowed disabled:opacity-60';
 
@@ -65,6 +69,7 @@ const BUTTON_CLASS =
   'disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-sm disabled:active:scale-100 sm:flex-none';
 
 export default function ExportButtons() {
+  const toast = useToast();
   const initial = currentMonthRange();
   const [startDate, setStartDate] = useState(initial.start);
   const [endDate, setEndDate] = useState(initial.end);
@@ -78,8 +83,7 @@ export default function ExportButtons() {
   const [optionsError, setOptionsError] = useState(false);
 
   const [loading, setLoading] = useState(null); // null | 'csv' | 'pdf'
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState(''); // validação e erro de exportação (inline, perto dos botões)
 
   const busy = loading !== null;
   const typesFiltered = types.length < ALL_TYPES.length;
@@ -112,27 +116,22 @@ export default function ExportButtons() {
     };
   }, []);
 
-  function clearMessages() {
-    setError('');
-    setSuccess('');
-  }
-
   function handleDateChange(setter) {
     return (event) => {
       setter(event.target.value);
-      clearMessages();
+      setError('');
     };
   }
 
   function toggleType(value) {
     setTypes((prev) => (prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]));
-    clearMessages();
+    setError('');
   }
 
   function changeFilter(setter) {
     return (next) => {
       setter(next);
-      clearMessages();
+      setError('');
     };
   }
 
@@ -140,12 +139,10 @@ export default function ExportButtons() {
     setTypes(ALL_TYPES);
     setCategoryIds([]);
     setAccountIds([]);
-    clearMessages();
+    setError('');
   }
 
   async function handleExport(kind) {
-    setSuccess('');
-
     const validationError = validate(startDate, endDate, types);
     if (validationError) {
       setError(validationError);
@@ -168,7 +165,7 @@ export default function ExportButtons() {
       // O nome é montado aqui porque o navegador não consegue ler o Content-Disposition (CORS)
       const suffix = hasFilters ? '-filtrado' : '';
       downloadFile(blob, `mypiggy-extrato-${startDate}_${endDate}${suffix}.${kind}`);
-      setSuccess(`Arquivo ${kind.toUpperCase()} gerado.`);
+      toast.success(`Arquivo ${kind.toUpperCase()} gerado.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -186,8 +183,8 @@ export default function ExportButtons() {
 
   return (
     <section className="rounded-xl bg-white p-4 shadow sm:p-6">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-60">
           <h2 className="text-sm font-bold uppercase tracking-wide text-gray-800">Exportar extrato</h2>
           <p className="text-xs text-gray-500">
             Escolha o período e o que incluir. Sem filtros, o extrato sai completo (independente do mês
@@ -208,13 +205,15 @@ export default function ExportButtons() {
 
       {/* ---------- Período: lado a lado, também no celular ---------- */}
       <div className="grid grid-cols-2 gap-3">
-        <div>
+        <div className="min-w-0">
           <label htmlFor="export-start" className="mb-1 block text-xs font-medium text-gray-600">
             De
           </label>
           <input
             id="export-start"
             type="date"
+            min={MIN_DATE}
+            max={MAX_DATE}
             value={startDate}
             onChange={handleDateChange(setStartDate)}
             onClick={openPicker}
@@ -222,13 +221,15 @@ export default function ExportButtons() {
             className={DATE_INPUT_CLASS}
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <label htmlFor="export-end" className="mb-1 block text-xs font-medium text-gray-600">
             Até
           </label>
           <input
             id="export-end"
             type="date"
+            min={MIN_DATE}
+            max={MAX_DATE}
             value={endDate}
             onChange={handleDateChange(setEndDate)}
             onClick={openPicker}
@@ -239,8 +240,10 @@ export default function ExportButtons() {
       </div>
 
       {/* ---------- Tipos ---------- */}
-      <div className="mt-8">
-        <span className="mb-1 block text-xs font-medium text-gray-600">Tipos de transação</span>
+      <div className="mt-8" role="group" aria-labelledby="export-types-label">
+        <span id="export-types-label" className="mb-1 block text-xs font-medium text-gray-600">
+          Tipos de transação
+        </span>
         <div className="flex flex-wrap gap-2">
           {TYPE_OPTIONS.map((option) => {
             const checked = types.includes(option.value);
@@ -251,11 +254,11 @@ export default function ExportButtons() {
                 onClick={() => toggleType(option.value)}
                 disabled={busy}
                 aria-pressed={checked}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition hover:cursor-pointer active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`rounded-lg px-3 py-2 sm:py-1.5 text-sm font-medium transition hover:cursor-pointer active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
                   checked ? option.active : option.idle
                 }`}
               >
-                {checked ? '✓ ' : ''}
+                {checked && <span aria-hidden="true">✓ </span>}
                 {option.label}
               </button>
             );
@@ -294,7 +297,7 @@ export default function ExportButtons() {
         </p>
       )}
 
-      <p className="mt-8 text-xs text-gray-500">
+      <p className="mt-8 text-xs text-gray-500" aria-live="polite">
         Será exportado em extrato: <strong className="text-gray-800">{summaryParts.join(' · ')}</strong>
       </p>
 
@@ -323,7 +326,6 @@ export default function ExportButtons() {
           {error}
         </p>
       )}
-      {success && !error && <p className="mt-3 text-sm text-green-700">{success}</p>}
     </section>
   );
 }

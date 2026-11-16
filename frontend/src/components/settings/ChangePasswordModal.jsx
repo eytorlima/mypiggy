@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,9 +12,10 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/
 
 const schema = z
   .object({
-    currentPassword: z.string().min(1, 'Informe a senha atual'),
+    currentPassword: z.string().min(1, 'Informe a senha atual').max(72, 'Máximo de 72 caracteres'),
     newPassword: z
       .string()
+      .max(72, 'Máximo de 72 caracteres')
       .regex(
         PASSWORD_REGEX,
         'Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial'
@@ -31,6 +32,7 @@ const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' };
 export function ChangePasswordModal({ open, onClose, onSuccess }) {
   const { mounted, visible } = useModalTransition(open, onClose);
   const [apiError, setApiError] = useState('');
+  const titleId = useId();
 
   const {
     register,
@@ -64,14 +66,15 @@ export function ChangePasswordModal({ open, onClose, onSuccess }) {
   if (!mounted) return null;
 
   return (
-    <ModalShell visible={visible} onClose={onClose} size="sm">
+    <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-        <h3 className="font-bold text-gray-700 text-center">Alterar senha</h3>
+        <h2 id={titleId} className="font-bold text-gray-700 text-center">Alterar senha</h2>
 
         <ModalField
           label="Senha atual"
           type="password"
           autoComplete="current-password"
+          maxLength={72}
           register={register('currentPassword')}
           error={errors.currentPassword?.message}
         />
@@ -80,6 +83,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }) {
           label="Nova senha"
           type="password"
           autoComplete="new-password"
+          maxLength={72}
           register={register('newPassword')}
           error={errors.newPassword?.message}
         />
@@ -88,18 +92,21 @@ export function ChangePasswordModal({ open, onClose, onSuccess }) {
           label="Confirmar nova senha"
           type="password"
           autoComplete="new-password"
+          maxLength={72}
           register={register('confirmPassword')}
           error={errors.confirmPassword?.message}
         />
 
-        {apiError && <p className="text-red-700 text-sm text-center">{apiError}</p>}
+        {apiError && (
+          <p role="alert" className="text-red-700 text-sm text-center">{apiError}</p>
+        )}
 
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-600 text-sm font-semibold
+            className="flex-1 min-h-10 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold
                        hover:cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancelar
@@ -107,7 +114,7 @@ export function ChangePasswordModal({ open, onClose, onSuccess }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 h-10 rounded-lg bg-primary-500 text-white text-sm font-semibold
+            className="flex-1 min-h-10 rounded-lg bg-primary-500 text-white text-sm font-semibold
                        hover:cursor-pointer hover:bg-primary-600 transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Salvando...' : 'Alterar senha'}

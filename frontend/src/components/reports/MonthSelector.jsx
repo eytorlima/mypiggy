@@ -16,10 +16,11 @@ export default function MonthSelector({ month, onChange }) {
         className="h-10 w-10 rounded-lg text-xl text-gray-600 transition hover:bg-gray-100 hover:cursor-pointer"
         aria-label="Mês anterior"
       >
-        ‹
+        <span aria-hidden="true">‹</span>
       </button>
 
-      <span className="font-semibold text-gray-800">{formatMonthLabel(month)}</span>
+      {/* aria-live: o leitor de tela anuncia o novo mês ao navegar */}
+      <span className="font-semibold text-gray-800" aria-live="polite">{formatMonthLabel(month)}</span>
 
       <button
         type="button"
@@ -28,7 +29,7 @@ export default function MonthSelector({ month, onChange }) {
         className="h-10 w-10 rounded-lg text-xl text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent hover:cursor-pointer"
         aria-label="Próximo mês"
       >
-        ›
+        <span aria-hidden="true">›</span>
       </button>
     </div>
   );

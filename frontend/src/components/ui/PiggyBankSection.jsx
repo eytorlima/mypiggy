@@ -18,6 +18,7 @@ function PiggyBankMiniCard({ piggy }) {
       style={reached ? { borderColor: GOLD, backgroundColor: '#fffbeb' } : undefined}
     >
       <div
+        aria-hidden="true"
         className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0"
         style={{ backgroundColor: accent }}
       >
@@ -27,7 +28,7 @@ function PiggyBankMiniCard({ piggy }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold text-gray-800 text-sm truncate">
-            {piggy.name}{reached && ' 🎉'}
+            {piggy.name}{reached && <span aria-label="Meta atingida"> 🎉</span>}
           </p>
           <p className="font-bold text-gray-800 text-sm whitespace-nowrap">
             {formatBRL(piggy.totalInCents)}
@@ -36,7 +37,14 @@ function PiggyBankMiniCard({ piggy }) {
 
         {hasGoal ? (
           <>
-            <div className="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden mt-1.5">
+            <div
+              role="progressbar"
+              aria-label={`Progresso de ${piggy.name}`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(percent)}
+              className="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden mt-1.5"
+            >
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${percent}%`, backgroundColor: accent }}
@@ -61,24 +69,29 @@ export function PiggyBanksSection({ piggyBanks }) {
   const hidden = piggyBanks.length - visible.length;
 
   return (
-    <div className="bg-white border border-black/20 rounded-2xl p-5 text-black shadow-xl flex flex-col items-center w-full">
+    <div className="bg-white border border-black/20 rounded-2xl p-4 sm:p-5 text-black shadow-xl flex flex-col items-center w-full">
       <div className="flex items-center justify-center w-full relative mb-5">
         <h2 className="font-bold text-gray-700">Meus porquinhos</h2>
         <button
+          type="button"
           onClick={() => navigate('/goals')}
-          className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          aria-label="Gerenciar porquinhos"
+          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
+          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
-          Gerenciar
+          {/* No celular o título ocupa o centro: texto curto evita sobreposição */}
+          <span className="sm:hidden">Gerenciar</span>
+          <span className="hidden sm:inline">Gerenciar Porquinhos</span>
         </button>
       </div>
 
       {piggyBanks.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
-          <SavingsOutlined className="text-gray-300" style={{ fontSize: 56 }} />
+          <SavingsOutlined className="text-gray-300" style={{ fontSize: 56 }} aria-hidden="true" />
           <p className="text-gray-500 font-medium">Nenhum porquinho ainda</p>
-          <p className="text-gray-400 text-sm">Crie metas e guarde dinheiro aos poucos.</p>
+          <p className="text-gray-500 text-sm">Crie metas e guarde dinheiro aos poucos.</p>
           <button
+            type="button"
             onClick={() => navigate('/goals')}
             className="mt-2 px-5 py-2 bg-primary-500 text-white text-sm font-semibold rounded-lg
             hover:bg-primary-600 transition-colors hover:cursor-pointer duration-200 ease-in-out"
@@ -93,8 +106,9 @@ export function PiggyBanksSection({ piggyBanks }) {
           ))}
           {hidden > 0 && (
             <button
+              type="button"
               onClick={() => navigate('/goals')}
-              className="text-sm text-primary-500 font-semibold hover:underline hover:cursor-pointer"
+              className="py-1.5 text-sm text-primary-700 font-semibold hover:underline hover:cursor-pointer"
             >
               Ver mais {hidden} {hidden === 1 ? 'porquinho' : 'porquinhos'}
             </button>

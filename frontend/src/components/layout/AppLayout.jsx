@@ -41,13 +41,12 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-dvh bg-gray-50">
       <Header />
 
-      {/* Espaço do header fixo */}
-      <div className="pt-16 pb-20 flex-1">
+      <main className="flex-1 pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <Outlet context={{ refreshKey }} />
-      </div>
+      </main>
 
       <BottomNav onFabClick={handleFabClick} />
 

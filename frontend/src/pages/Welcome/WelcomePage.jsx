@@ -14,14 +14,18 @@ export function WelcomePage() {
   }, [navigate]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-primary-500 gap-6">
+    // Tocar/clicar em qualquer lugar também avança, sem esperar os 3 segundos
+    <main
+      className="flex flex-col items-center justify-center min-h-dvh px-4 bg-primary-500 gap-6"
+      onClick={() => navigate('/login-options')}
+    >
       <PiggyLogo size={150} />
       <div className="text-center text-white">
-        <h1 className="text-5xl text-shadow-lg font-bold tracking-wide">MyPiggy</h1>
-        <p className="text-xl text-shadow-lg mt-4 font-normal">
+        <h1 className="text-4xl sm:text-5xl text-shadow-lg font-bold tracking-wide">MyPiggy</h1>
+        <p className="text-lg sm:text-xl text-shadow-lg mt-4 font-normal">
           Sua gestão financeira pessoal.
         </p>
       </div>
-    </div>
+    </main>
   );
 }

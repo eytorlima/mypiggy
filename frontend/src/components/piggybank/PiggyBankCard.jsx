@@ -10,11 +10,12 @@ import {
   getPiggyIcon,
 } from '../../utils/piggyBankUtils';
 
-function Badge({ children, color }) {
+// color: fundo (com transparência); textColor: tom escuro da mesma cor, para o contraste
+function Badge({ children, color, textColor }) {
   return (
     <span
       className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
-      style={{ color, backgroundColor: `${color}22` }}
+      style={{ color: textColor || color, backgroundColor: `${color}22` }}
     >
       {children}
     </span>
@@ -47,6 +48,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
       {/* Cabeçalho */}
       <div className="flex items-start gap-3">
         <div
+          aria-hidden="true"
           className="w-11 h-11 rounded-full flex items-center justify-center text-white flex-shrink-0"
           style={{ backgroundColor: accent }}
         >
@@ -55,9 +57,15 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-gray-800 truncate">{piggy.name}</h3>
-            {piggy.isEmergency && <Badge color="#3b82f6">Emergência</Badge>}
-            {reached && <Badge color={GOLD}>🎉 Meta atingida</Badge>}
+            <h2 className="font-semibold text-gray-800 truncate max-w-full" title={piggy.name}>
+              {piggy.name}
+            </h2>
+            {piggy.isEmergency && <Badge color="#3b82f6" textColor="#1d4ed8">Emergência</Badge>}
+            {reached && (
+              <Badge color={GOLD} textColor="#92400e">
+                <span aria-hidden="true">🎉 </span>Meta atingida
+              </Badge>
+            )}
           </div>
           {piggy.description && (
             <p className="text-xs text-gray-500 truncate">{piggy.description}</p>
@@ -68,8 +76,8 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
           <button
             type="button"
             onClick={onEdit}
-            aria-label="Editar"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100
+            aria-label={`Editar porquinho ${piggy.name}`}
+            className="p-2 sm:p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100
                        transition-colors hover:cursor-pointer"
           >
             <EditOutlined fontSize="small" />
@@ -79,8 +87,8 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
             <button
               type="button"
               onClick={onDelete}
-              aria-label="Excluir"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50
+              aria-label={`Excluir porquinho ${piggy.name}`}
+              className="p-2 sm:p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50
                          transition-colors hover:cursor-pointer"
             >
               <DeleteOutlineOutlined fontSize="small" />
@@ -91,7 +99,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
 
       {/* Valores */}
       <div>
-        <p className="text-2xl font-bold text-gray-800">{formatBRL(piggy.totalInCents)}</p>
+        <p className="text-xl sm:text-2xl font-bold text-gray-800 break-words">{formatBRL(piggy.totalInCents)}</p>
         <p className="text-xs text-gray-500">
           Guardado {formatBRL(piggy.balanceInCents)}
           {piggy.estimatedYieldInCents > 0 && (
@@ -109,11 +117,11 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
       {/* Meta: barra de progresso */}
       {hasGoal && (
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-gray-500">
               Meta <span className="font-semibold text-gray-700">{formatBRL(piggy.goalInCents)}</span>
             </span>
-            <span className="font-semibold" style={{ color: accent }}>
+            <span className="font-semibold text-gray-700">
               {(piggy.progressPercent ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
             </span>
           </div>
@@ -121,6 +129,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
           <div
             className="h-2.5 w-full rounded-full bg-gray-200 overflow-hidden"
             role="progressbar"
+            aria-label={`Progresso de ${piggy.name}`}
             aria-valuenow={Math.round(percent)}
             aria-valuemin={0}
             aria-valuemax={100}
@@ -131,7 +140,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs text-gray-500 gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-gray-500">
             <span className={overdue ? 'text-red-600 font-medium' : ''}>{deadlineText(piggy)}</span>
             {!reached && <span className="whitespace-nowrap">Faltam {formatBRL(remaining)}</span>}
           </div>
@@ -143,7 +152,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
         <button
           type="button"
           onClick={onDeposit}
-          className="flex-1 py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold
+          className="flex-1 py-2.5 sm:py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold
                      hover:bg-primary-600 active:scale-95 transition hover:cursor-pointer"
         >
           Guardar
@@ -152,7 +161,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
           type="button"
           onClick={onWithdraw}
           disabled={piggy.balanceInCents <= 0}
-          className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold
+          className="flex-1 py-2.5 sm:py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold
                      hover:bg-gray-100 active:scale-95 transition hover:cursor-pointer
                      disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
         >
