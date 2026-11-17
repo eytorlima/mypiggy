@@ -30,44 +30,47 @@ export function CategoryDeleteModal({
   const hasLinked = transactionCount > 0; // null > 0 é false
   const unknownUsage = !checking && transactionCount === null;
   const isSingle = transactionCount === 1;
+  const name = lastCategory.current?.name ?? '';
 
   return (
     <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
-      <h2 id={titleId} className="text-lg font-bold text-gray-800 mb-2">
+      <h2 id={titleId} className="text-base font-bold text-gray-800 mb-3">
         Excluir categoria
       </h2>
-      <p className="text-sm text-gray-600 break-words">
-        Tem certeza que deseja excluir{' '}
-        <span className="font-semibold">{lastCategory.current?.name}</span>? Essa ação não
-        pode ser desfeita.
+
+      {/* Nome em bloco próprio: break-all + line-clamp evitam que nomes antigos
+          muito longos (sem espaços) estourem o modal */}
+      <p
+        title={name}
+        className="px-3 py-2 rounded-lg bg-gray-50 text-sm font-semibold text-gray-800
+                   break-all line-clamp-2"
+      >
+        {name}
       </p>
+      <p className="mt-2 text-xs text-gray-500">Essa ação não pode ser desfeita.</p>
 
       {/* Consultando a quantidade de transações vinculadas */}
       {checking && (
-        <p role="status" className="mt-3 text-sm text-gray-500">
+        <p role="status" className="mt-3 text-xs text-gray-500">
           Verificando transações vinculadas...
         </p>
       )}
 
       {/* Aviso: categoria em uso */}
       {!checking && !error && hasLinked && (
-        <p className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          Esta categoria possui{' '}
+        <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           <span className="font-semibold">
-            {transactionCount} {isSingle ? 'transação vinculada' : 'transações vinculadas'}
-          </span>
-          .{' '}
-          {isSingle
-            ? 'Ela continuará no seu extrato, mas ficará sem categoria.'
-            : 'Elas continuarão no seu extrato, mas ficarão sem categoria.'}
+            {transactionCount} {isSingle ? 'transação' : 'transações'}
+          </span>{' '}
+          {isSingle ? 'ficará' : 'ficarão'} sem categoria.
         </p>
       )}
 
       {/* Aviso genérico: não foi possível consultar a quantidade */}
       {!error && unknownUsage && (
-        <p className="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          Não foi possível verificar as transações vinculadas. Se houver alguma, ela
-          ficará sem categoria.
+        <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          Não foi possível verificar as transações vinculadas. Se houver alguma, ficará
+          sem categoria.
         </p>
       )}
 
@@ -75,18 +78,18 @@ export function CategoryDeleteModal({
       {error && (
         <p
           role="alert"
-          className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+          className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 break-words"
         >
           {error}
         </p>
       )}
 
-      <div className="flex gap-3 mt-5">
+      <div className="flex gap-2 mt-4">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold
+          className="flex-1 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 font-semibold
                      hover:bg-gray-50 disabled:opacity-50 transition-colors hover:cursor-pointer"
         >
           {error ? 'Fechar' : 'Cancelar'}
@@ -97,7 +100,7 @@ export function CategoryDeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={loading || checking}
-            className="flex-1 py-2.5 rounded-lg bg-red-500 text-white font-semibold
+            className="flex-1 py-2 text-sm rounded-lg bg-red-500 text-white font-semibold
                        hover:bg-red-600 disabled:opacity-50 transition-colors hover:cursor-pointer"
           >
             {loading ? 'Excluindo...' : hasLinked ? 'Excluir mesmo assim' : 'Excluir'}

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import io.jsonwebtoken.JwtException;
 import java.util.Collections;
 
 @Component
@@ -42,29 +43,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String token = authHeader.substring(7); //remover prefixo "Bearer "
-        final String email = jwtService.extractEmail(token);
-        
-        //autenticar só se: email válido e não existe autenticacao registrada nessa request
-        if(email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        try {
+            final String email = jwtService.extractEmail(token);
 
-            userRepository.findByEmail(email).ifPresent(user -> {
+            //autenticar só se: email válido e não existe autenticacao registrada nessa request
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                if (jwtService.isTokenValid(token, email)){
+                userRepository.findByEmail(email).ifPresent(user -> {
 
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                user, 
-                                null,
-                                Collections.emptyList()
-                            );
+                    if (jwtService.isTokenValid(token, email)) {
 
-                    authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                    );                            
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                    user,
+                                    null,
+                                    Collections.emptyList()
+                                );
 
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
-            });
+                        authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                        );
+
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                });
+            }
+        } catch (JwtException | IllegalArgumentException e) {
+            // Token expirado, adulterado ou malformado: segue sem autenticar.
+            // O entry point responde 401 (e não 500).
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

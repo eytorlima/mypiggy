@@ -7,9 +7,9 @@ const api = axios.create({
 //interceptor para rodar antes das chamadas
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
-    const isAuthRequest = config.url?.includes('/auth/');
+    const isPublicAuth = /\/auth\/(login|register)/.test(config.url ?? '');
 
-    if (token && !isAuthRequest) {
+    if (token && !isPublicAuth) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 

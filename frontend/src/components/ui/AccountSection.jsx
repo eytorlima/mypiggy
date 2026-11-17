@@ -1,7 +1,6 @@
 import { AccountCard } from './AccountCard';
 import { SkeletonCard } from './SkeletonCard';
 import { useNavigate } from 'react-router-dom';
-import AddOutlined from '@mui/icons-material/AddOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 
 export function AccountsSection({ accounts}) {
@@ -9,12 +8,17 @@ export function AccountsSection({ accounts}) {
 
   return (
     <div className="bg-white border border-black/20 rounded-2xl p-5 text-black shadow-xl flex flex-col items-center w-full">
-      <div className="flex items-center justify-center w-full relative mb-5">
+      {/* Mobile: título e botão empilhados. A partir de sm: título centralizado e botão à direita */}
+      <div className="flex flex-col items-center gap-2 w-full mb-5 sm:flex-row sm:justify-center sm:relative">
         <h2 className="font-bold text-gray-700">Minhas contas</h2>
-        <button onClick={() => navigate('/accounts')} 
-        className="text-primary-500 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
-        hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200">
-          {(accounts.length === 0) ? "Adicionar Contas" : "Gerenciar Contas"}
+        <button
+          type="button"
+          onClick={() => navigate('/accounts')}
+          className="text-primary-600 text-sm flex items-center font-semibold gap-1 opacity-75 px-3 py-2 bg-primary-100/90 rounded-md whitespace-nowrap
+          sm:absolute sm:right-0
+          hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:text-primary-800 hover:shadow-xs ease-in-out duration-200"
+        >
+          {(accounts.length === 0) ? "Adicionar contas" : "Gerenciar contas"}
         </button>
       </div>
 

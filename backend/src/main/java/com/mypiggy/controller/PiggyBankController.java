@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.mypiggy.dto.PiggyBankBalanceRequestDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -89,6 +90,15 @@ public class PiggyBankController {
                 piggyBankService.withdraw(id, request, user.getId())));
     }
 
+        // Corrige o valor guardado sem registrar depósito/retirada
+    @PutMapping("/{id}/balance")
+    public ResponseEntity<ApiResponse<PiggyBankResponseDTO>> adjustBalance(
+            @AuthenticationPrincipal User user, @PathVariable UUID id,
+            @Valid @RequestBody PiggyBankBalanceRequestDTO request) {
+        return ResponseEntity.ok(ApiResponse.success("Valor ajustado",
+                piggyBankService.adjustBalance(id, request.getBalanceInCents(), user.getId())));
+    }
+    
     // Histórico de depósitos e retiradas (tela de detalhes)
     @GetMapping("/{id}/movements")
     public ResponseEntity<ApiResponse<List<PiggyBankMovementResponseDTO>>> movements(

@@ -16,6 +16,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
 
     Optional<Account> findByIdAndUserId(UUID id, UUID userId);
 
+    boolean existsByUserIdAndIsDefaultTrue(UUID userId);
+
     @Query("SELECT COALESCE(SUM(a.balanceInCents), 0) FROM Account a WHERE a.user.id = :userId")
     Long sumBalanceByUserId(UUID userId);
 }

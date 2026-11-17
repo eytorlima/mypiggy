@@ -22,6 +22,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final PiggyBankService piggyBankService;
     private final UserSettingsService userSettingsService;
+    private final AccountService accountService;
 
     // @Transactional: usuário, reserva de emergência e configurações são salvos juntos.
     // Se qualquer um falhar, o cadastro inteiro é desfeito
@@ -51,6 +52,9 @@ public class AuthService {
 
         // Todo usuário nasce com as configurações padrão (BRL, pt-BR, horário de Brasília)
         userSettingsService.createDefaultFor(savedUser);
+
+        // Todo usuário nasce com a conta "Carteira" (não pode ser excluída)
+        accountService.createDefaultFor(savedUser);
 
         String token = jwtService.generateToken(savedUser.getEmail());
 

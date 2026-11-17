@@ -76,8 +76,8 @@ export function PiggyBanksSection({ piggyBanks }) {
           type="button"
           onClick={() => navigate('/goals')}
           aria-label="Gerenciar porquinhos"
-          className="text-primary-700 text-sm flex items-center font-semibold absolute right-0 gap-1 p-2 bg-primary-100/90 rounded-md
-          hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
+          className="text-primary-600 text-sm flex items-center font-semibold absolute right-0 gap-1 opacity-75 p-2 bg-primary-100/90 rounded-md
+        hover:opacity-100 hover:cursor-pointer hover:bg-primary-100 hover:text-primary-800 hover:shadow-xs ease-in-out duration-200"
         >
           {/* No celular o título ocupa o centro: texto curto evita sobreposição */}
           <span className="sm:hidden">Gerenciar</span>

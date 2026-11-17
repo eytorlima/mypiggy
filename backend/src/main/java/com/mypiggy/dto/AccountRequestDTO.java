@@ -9,11 +9,14 @@ import lombok.Setter;
 public class AccountRequestDTO {
 
     @NotBlank(message = "Nome é obrigatório")
-    @Size(max = 100)
+    @Size(max = 30, message = "O nome deve ter no máximo 30 caracteres")
+    @Pattern(
+        regexp = "^\\p{L}+( \\p{L}+)*$",
+        message = "O nome deve conter apenas letras e espaços"
+    )
     private String name;
 
-    @NotBlank(message = "Tipo de conta é obrigatório")
-    private String accountType; // BANK_ACCOUNT, CHECKING_ACCOUNT, SAVINGS_ACCOUNT, WALLET
+    private String accountType; 
 
     private Long balanceInCents = 0L;
 

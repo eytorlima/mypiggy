@@ -35,6 +35,9 @@ public abstract class Account {
     @Column(name = "icon", length = 50)
     private String icon;
 
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault = false;
+
     @Column(name = "balance_in_cents", nullable = false)
     private Long balanceInCents = 0L;
 

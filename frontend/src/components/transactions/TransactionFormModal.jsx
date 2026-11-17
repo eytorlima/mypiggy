@@ -118,7 +118,7 @@ const schema = z
 
     description: z
       .string()
-      .max(255, 'Máximo de 255 caracteres')
+      .max(40, 'Máximo de 40 caracteres')
       .optional(),
 
     isRecurring: z.boolean(),
@@ -792,6 +792,8 @@ export function TransactionFormModal({
           <InputField
             className="text-black"
             label="Descrição (opcional)"
+            maxLength={40}
+            autoComplete="off"
             placeholder={
               isTransfer
                 ? 'Ex: Reserva do mês'

@@ -196,6 +196,12 @@ export function DepositWithdrawModal({ open, mode, piggy, accounts, onClose, onS
 
           {/* Resumo */}
           <div className="text-xs text-gray-500 flex flex-col gap-0.5 -mt-1" aria-live="polite">
+            <span>
+              {shownIsDeposit ? 'Valor a ser guardado' : 'Valor a ser retirado'}:{' '}
+              <span className={`font-semibold ${shownIsDeposit ? 'text-primary-700' : 'text-red-600'}`}>
+                {formatBRL(amountCents)}
+              </span>
+            </span>
             {shownIsDeposit && account && (
               <span>
                 Disponível na conta:{' '}

@@ -19,10 +19,11 @@ export function AuthProvider({ children }) {
       .then((response) => {
         setUser(response.data.data);
       })
-      .catch(() => {
-        // Token inválido ou expirado — limpa sem redirecionar
-        // O redirecionamento fica por conta do interceptor ou do PrivateRoute
-        localStorage.removeItem('token');
+      .catch((error) => {
+        // Só descarta o token se o servidor recusou (401). Erro de rede ou 500 não desloga.
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+        }
         setUser(null);
       })
       .finally(() => {

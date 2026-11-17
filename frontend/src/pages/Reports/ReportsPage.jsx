@@ -6,10 +6,12 @@ import MonthlyBarChart from '../../components/reports/MonthlyBarChart';
 import MonthSelector from '../../components/reports/MonthSelector';
 import SummaryCards from '../../components/reports/SummaryCards';
 import ExportButtons from '../../components/reports/ExportButtons';
-import { getByCategory, getMonthly } from '../../services/reportService';
+import BalanceHistoryChart from '../../components/reports/BalanceHistoryChart';
+import { getBalanceHistory, getByCategory, getMonthly } from '../../services/reportService';
 import { assignCategoryColors, keyOf } from '../../utils/categoryColors';
 import { formatBRL } from '../../utils/formatCurrency';
 import { currentMonth } from '../../utils/month';
+import { useOutletContext } from 'react-router-dom';
 
 function ChartSkeleton({ height = 'h-64' }) {
   return <div aria-hidden="true" className={`${height} w-full animate-pulse rounded-xl bg-gray-200`} />;
@@ -29,6 +31,8 @@ function ChartPlaceholder({ children, className = 'text-gray-500', role }) {
 }
 
 export function ReportsPage() {
+  const { refreshKey } = useOutletContext(); // muda quando uma transação é salva pelo botão (+)
+
   // ---- Estado dos controles ----
   const [month, setMonth] = useState(currentMonth());
   const [type, setType] = useState('CREDIT'); // 'DEBIT' = Saídas | 'CREDIT' = Entradas
@@ -47,6 +51,12 @@ export function ReportsPage() {
   const [monthlyReport, setMonthlyReport] = useState(null);
   const [monthlyLoading, setMonthlyLoading] = useState(true);
   const [monthlyError, setMonthlyError] = useState('');
+
+    // Evolução do saldo: janela própria, independente do gráfico mensal
+  const [balanceMonths, setBalanceMonths] = useState(6);
+  const [balanceReport, setBalanceReport] = useState(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [balanceError, setBalanceError] = useState('');
 
   // Relatórios por categoria (entradas + saídas): recarrega quando muda o mês
   useEffect(() => {
@@ -71,7 +81,7 @@ export function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [month]);
+  }, [month, refreshKey]);
 
   // Relatório mensal: recarrega quando muda a janela (3/6/12 meses)
   useEffect(() => {
@@ -94,7 +104,32 @@ export function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [months]);
+  }, [months, refreshKey]);
+
+
+  // Evolução do saldo: recarrega quando muda a janela
+  useEffect(() => {
+    let cancelled = false;
+
+    setBalanceLoading(true);
+    setBalanceError('');
+
+    getBalanceHistory(balanceMonths)
+      .then((data) => {
+        if (!cancelled) setBalanceReport(data);
+      })
+      .catch(() => {
+        if (!cancelled) setBalanceError('Não foi possível carregar a evolução do saldo.');
+      })
+      .finally(() => {
+        if (!cancelled) setBalanceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [balanceMonths, refreshKey]);
+
 
   // ---- Valores derivados (calculados a partir do estado, nunca guardados nele) ----
   const categoryReport = type === 'DEBIT' ? expenseReport : incomeReport;
@@ -254,6 +289,21 @@ export function ReportsPage() {
             <ChartSkeleton height="h-80" />
           ) : (
             <MonthlyBarChart report={monthlyReport} months={months} onChangeMonths={setMonths} />
+          )}
+        </section>
+
+        {/* ---------- Evolução do saldo (largura total) ---------- */}
+        <section className="rounded-xl bg-white p-4 shadow sm:p-8" aria-label="Evolução do saldo">
+          {balanceError ? (
+            <p role="alert" className="py-10 text-center text-sm text-red-600">{balanceError}</p>
+          ) : balanceLoading && !balanceReport ? (
+            <ChartSkeleton height="h-80" />
+          ) : (
+            <BalanceHistoryChart
+              report={balanceReport}
+              months={balanceMonths}
+              onChangeMonths={setBalanceMonths}
+            />
           )}
         </section>
       </div>

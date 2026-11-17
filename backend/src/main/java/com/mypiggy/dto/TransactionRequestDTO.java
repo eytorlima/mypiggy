@@ -22,6 +22,7 @@ public class TransactionRequestDTO {
     @Positive(message = "Valor deve ser positivo")
     private Long amountInCents;
 
+    @Size(max = 40, message = "A descrição deve ter no máximo 40 caracterese")
     private String description;
 
     @NotNull(message = "Data é obrigatória")

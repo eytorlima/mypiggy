@@ -5,12 +5,15 @@ import EditOutlined from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import RepeatOutlined from '@mui/icons-material/RepeatOutlined';
 import StopCircleOutlined from '@mui/icons-material/StopCircleOutlined';
+import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 
 // amountInCents vem SEMPRE positivo do back-end: o sinal depende do tipo
 const typeStyle = {
   CREDIT:   { sign: '+', className: 'text-primary-700' },
   DEBIT:    { sign: '-', className: 'text-red-600' },
   TRANSFER: { sign: '',  className: 'text-gray-500' },
+  PIGGY_DEPOSIT:    { sign: '', className: 'text-gray-500' },
+  PIGGY_WITHDRAWAL: { sign: '', className: 'text-gray-500' },
 };
 
 const recurrenceLabel = {
@@ -36,6 +39,7 @@ export function TransactionItem({ transaction, onEdit, onDelete, onEndRecurrence
   } = transaction;
 
   const isTransfer = transactionType === 'TRANSFER';
+    const isPiggy = transactionType === 'PIGGY_DEPOSIT' || transactionType === 'PIGGY_WITHDRAWAL';
   const style = typeStyle[transactionType] || typeStyle.TRANSFER;
 
   // Qualquer transação de uma série (original ou gerada) tem recurrenceSeriesId
@@ -43,19 +47,24 @@ export function TransactionItem({ transaction, onEdit, onDelete, onEndRecurrence
   const seriesActive = inSeries && recurrenceActive !== false;
   const seriesEnded = inSeries && recurrenceActive === false;
 
-  const bgColor = colorMap[categoryColor] || colorMap.gray;
-  const iconElement =
-    categoryIconMap[categoryIcon] ||
-    (isTransfer ? categoryIconMap.transfer : categoryIconMap.other);
+    // Movimentações de porquinho: fundo neutro (cinza) e ícone de porquinho
+  const bgColor = isPiggy ? colorMap.gray : colorMap[categoryColor] || colorMap.gray;
+  const iconElement = isPiggy
+    ? <SavingsOutlined />
+    : categoryIconMap[categoryIcon] ||
+      (isTransfer ? categoryIconMap.transfer : categoryIconMap.other);
 
   const title =
     description || categoryName || (isTransfer ? 'Transferência' : 'Transação');
 
-  const subtitle = isTransfer
-    ? `${accountName} → ${destinationAccountName ?? '—'}`
-    : [categoryName, accountName].filter(Boolean).join(' · ');
+   // Guardar: o dinheiro sai da conta (origem). Retirar: volta para a conta (destino).
+  const subtitle = isPiggy
+    ? `${transactionType === 'PIGGY_DEPOSIT' ? 'Origem' : 'Destino'}: ${accountName}`
+    : isTransfer
+      ? `${accountName} → ${destinationAccountName ?? '—'}`
+      : [categoryName, accountName].filter(Boolean).join(' · ');
 
-  const hasActions = onEdit || onDelete || (onEndRecurrence && seriesActive);
+  const hasActions = !isPiggy && (onEdit || onDelete || (onEndRecurrence && seriesActive));
 
   return (
     // No celular as ações descem para uma linha própria; do sm em diante ficam ao lado

@@ -84,7 +84,7 @@ export function TransactionFilters({ filters, onChange, accounts, categories }) 
           type="search"
           value={filters.search}
           onChange={(e) => handleSearch(e.target.value)}
-          maxLength={100}
+          maxLength={40}
           placeholder="Pesquisar por descrição, conta, categoria..."
           aria-label="Pesquisar transações"
           className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700

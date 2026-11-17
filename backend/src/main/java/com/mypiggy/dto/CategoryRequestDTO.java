@@ -11,7 +11,11 @@ import lombok.Setter;
 public class CategoryRequestDTO {
 
     @NotBlank(message = "Nome é obrigatório")
-    @Size(max = 50, message = "Nome não pode ter mais de 50 caracteres")
+    @Size(max = 18, message = "Nome pode ter no máximo 18 letras")
+    @Pattern(
+        regexp = "^\\p{L}+$",
+        message = "Use apenas letras, sem espaços, números ou símbolos"
+    )
     private String name;
 
     @Size(max = 255)

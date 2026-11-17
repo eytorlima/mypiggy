@@ -16,7 +16,7 @@ const typeLabelMap = {
 };
 
 export function AccountCard({ account, onEdit, onDelete }) {
-  const { name, balanceInCents = 0, accountType, color, icon } = account;
+  const { name, balanceInCents = 0, accountType, color, icon, isDefault } = account;
   const isNegative = balanceInCents < 0;
 
   // color/icon guardam a chave escolhida no modal; se vier um hex, usa direto
@@ -44,6 +44,12 @@ export function AccountCard({ account, onEdit, onDelete }) {
           <p className="text-xs text-gray-500">
             {typeLabelMap[accountType] || accountType}
           </p>
+
+            {isDefault && (
+            <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+              Padrão
+            </span>
+          )}
           {isNegative && (
             <span className="text-[11px] font-bold uppercase tracking-wide text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
               Devedora
@@ -72,7 +78,7 @@ export function AccountCard({ account, onEdit, onDelete }) {
               <EditOutlined fontSize="small" />
             </button>
           )}
-          {onDelete && (
+          {onDelete && !isDefault && (
             <button
               type="button"
               onClick={onDelete}

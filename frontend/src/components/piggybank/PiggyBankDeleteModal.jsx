@@ -29,7 +29,6 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
   if (!mounted || !shown) return null;
 
   const hasBalance = shown.balanceInCents > 0;
-  const missingAccount = hasBalance && !returnAccountId;
 
   return (
     <ModalShell visible={visible} onClose={onClose} size="sm" titleId={titleId}>
@@ -44,31 +43,33 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
       {hasBalance && (
         <div className="mt-3 flex flex-col gap-2">
           <p className="text-sm text-gray-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
-            Há <span className="font-semibold">{formatBRL(shown.balanceInCents)}</span> guardados. O
-            valor volta para a conta escolhida abaixo (o rendimento estimado não é devolvido).
+            Há <span className="font-semibold">{formatBRL(shown.balanceInCents)}</span> guardados.
+            Escolha uma conta para receber o valor ou descarte-o (o rendimento estimado não é devolvido).
           </p>
 
-          {accounts.length === 0 ? (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="piggy-return-account" className="text-sm font-medium text-gray-700">
+              Devolver para
+            </label>
+            <select
+              id="piggy-return-account"
+              value={returnAccountId}
+              onChange={(e) => setReturnAccountId(e.target.value)}
+              className="w-full h-[40px] px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
+                         focus:outline-none focus:border-primary-500 hover:cursor-pointer"
+            >
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+              <option value="">Não devolver para nenhuma conta</option>
+            </select>
+          </div>
+
+          {!returnAccountId && (
             <p role="status" className="text-sm text-red-600">
-              Cadastre uma conta para receber o valor.
+              {accounts.length === 0 ? 'Você não tem contas cadastradas. ' : ''}
+              O valor guardado será descartado e não voltará para nenhuma conta.
             </p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <label htmlFor="piggy-return-account" className="text-sm font-medium text-gray-700">
-                Devolver para
-              </label>
-              <select
-                id="piggy-return-account"
-                value={returnAccountId}
-                onChange={(e) => setReturnAccountId(e.target.value)}
-                className="w-full h-[40px] px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-700
-                           focus:outline-none focus:border-primary-500 hover:cursor-pointer"
-              >
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
-            </div>
           )}
         </div>
       )}
@@ -94,8 +95,8 @@ export function PiggyBankDeleteModal({ open, piggy, accounts, loading, error, on
         </button>
         <button
           type="button"
-          onClick={() => onConfirm(hasBalance ? returnAccountId : null)}
-          disabled={loading || missingAccount}
+          onClick={() => onConfirm(hasBalance ? returnAccountId || null : null)}
+          disabled={loading}
           className="flex-1 py-2.5 rounded-lg bg-red-500 text-white font-semibold
                      hover:bg-red-600 disabled:opacity-50 transition-colors hover:cursor-pointer"
         >

@@ -12,6 +12,9 @@ import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
+import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 
 // Moeda, idioma e fuso são fixos no sistema (CHECK no banco): aparecem só como informação
 const CURRENCY_LABELS = { BRL: 'Real brasileiro (BRL)' };
@@ -61,6 +64,21 @@ function FixedSelect({ label, value, labels }) {
 const secondaryButton =
   'flex-1 min-h-10 rounded-lg border border-primary-500 text-primary-700 text-sm font-semibold ' +
   'hover:cursor-pointer hover:bg-primary-500 hover:text-white transition-colors';
+
+function NavButton({ to, label }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(to)}
+      className="flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 min-h-11 text-sm text-left
+                 text-gray-700 hover:cursor-pointer hover:border-primary-500 transition-colors"
+    >
+      {label}
+      <ChevronRightOutlined fontSize="small" className="shrink-0 text-gray-500" aria-hidden="true" />
+    </button>
+  );
+}
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -203,7 +221,22 @@ export function SettingsPage() {
         </button>
       </Section>
 
-      {/* Conta */}
+      {/* Contas */}
+      <Section icon={<AccountBalanceWalletOutlined fontSize="small" />} title="Contas">
+        <NavButton to="/accounts" label="Gerenciar contas e carteiras" />
+      </Section>
+
+      {/* Porquinhos */}
+      <Section icon={<SavingsOutlined fontSize="small" />} title="Porquinhos">
+        <NavButton to="/goals" label="Gerenciar porquinhos e metas" />
+      </Section>
+
+      {/* Relatórios */}
+      <Section icon={<BarChartOutlined fontSize="small" />} title="Relatórios">
+        <NavButton to="/reports" label="Ver relatórios e exportar extrato" />
+      </Section>
+
+      {/* Conta/Account */}
       <Section icon={<LogoutOutlined fontSize="small" />} title="Conta">
         <button
           type="button"

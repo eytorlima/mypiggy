@@ -32,12 +32,14 @@ export async function getMonthly(months = 6) {
 
 // Com responseType 'blob', até a resposta de ERRO chega como Blob (e não como objeto).
 // Por isso lemos o blob como texto e extraímos o "message" que o backend enviou.
+
 async function extractErrorMessage(error) {
   if (!error.response) {
     return 'Não foi possível conectar ao servidor.';
   }
 
   const data = error.response.data;
+
   if (data instanceof Blob) {
     try {
       const json = JSON.parse(await data.text());
@@ -46,16 +48,24 @@ async function extractErrorMessage(error) {
       // corpo não era JSON: cai na mensagem genérica abaixo
     }
   }
+
   return 'Não foi possível gerar o arquivo.';
 }
 
 // Monta os parâmetros da requisição. Listas viram texto separado por vírgula
 // ("CREDIT,DEBIT"), que o Spring converte em List sozinho. Lista vazia = não envia = sem filtro.
-function buildExportParams(startDate, endDate, { types = [], categoryIds = [], accountIds = [] } = {}) {
+
+function buildExportParams(
+  startDate,
+  endDate,
+  { types = [], categoryIds = [], accountIds = [] } = {}
+) {
   const params = { startDate, endDate }; // "YYYY-MM-DD", o formato que o backend espera
+
   if (types.length) params.types = types.join(',');
   if (categoryIds.length) params.categoryIds = categoryIds.join(',');
   if (accountIds.length) params.accountIds = accountIds.join(',');
+
   return params;
 }
 
@@ -65,6 +75,7 @@ async function downloadReport(path, startDate, endDate, filters) {
       params: buildExportParams(startDate, endDate, filters),
       responseType: 'blob',
     });
+
     return response.data; // Blob
   } catch (error) {
     throw new Error(await extractErrorMessage(error));
@@ -88,4 +99,21 @@ export function exportCsv(startDate, endDate, filters) {
  */
 export function exportPdf(startDate, endDate, filters) {
   return downloadReport('/reports/export/pdf', startDate, endDate, filters);
+}
+
+/**
+ * Evolução do saldo ao fim de cada mês
+ * (consolidado, ou de uma conta com accountId).
+ *
+ * @param {number} months
+ * @param {string} [accountId]
+ */
+export async function getBalanceHistory(months = 6, accountId) {
+  const params = { months };
+
+  if (accountId) params.accountId = accountId;
+
+  const response = await api.get('/reports/balance-history', { params });
+
+  return response.data.data;
 }

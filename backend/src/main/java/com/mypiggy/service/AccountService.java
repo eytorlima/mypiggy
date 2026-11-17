@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -19,20 +20,56 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AccountService {
 
+    // Conta padrão criada no cadastro de todo usuário
+    private static final String DEFAULT_NAME = "Carteira";
+    private static final String DEFAULT_COLOR = "orange";
+    private static final String DEFAULT_ICON = "wallet";
+
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Cria a Carteira padrão do usuário (saldo zero). Chamado pelo cadastro, dentro da mesma
+     * transação do usuário. Seguro de chamar de novo: se já existe, não faz nada.
+     */
+    @Transactional
+    public void createDefaultFor(User user) {
+        if (accountRepository.existsByUserIdAndIsDefaultTrue(user.getId())) {
+            return;
+        }
+
+        Wallet wallet = new Wallet();
+        wallet.setUser(user);
+        wallet.setName(DEFAULT_NAME);
+        wallet.setBalanceInCents(0L);
+        wallet.setColor(DEFAULT_COLOR);
+        wallet.setIcon(DEFAULT_ICON);
+        wallet.setIsDefault(true);
+        accountRepository.save(wallet);
+    }
+
+    /** Toda conta criada pelo usuário é uma conta bancária (o tipo enviado é ignorado). */
     @Transactional
     public AccountResponseDTO create(AccountRequestDTO request, UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        Account account = buildAccount(request);
+        String name = request.getName().trim();
+        if (DEFAULT_NAME.equalsIgnoreCase(name)) {
+            throw new ValidationException("O nome \"Carteira\" é reservado para a conta padrão");
+        }
+
+        BankAccount account = new BankAccount();
+        account.setAgency(request.getAgency());
+        account.setAccountNumber(request.getAccountNumber());
+        account.setBranchNumber(request.getBranchNumber());
+
         account.setUser(user);
-        account.setName(request.getName());
+        account.setName(name);
         account.setBalanceInCents(request.getBalanceInCents() != null ? request.getBalanceInCents() : 0L);
         account.setColor(request.getColor());
         account.setIcon(request.getIcon());
+        account.setIsDefault(false);
 
         Account saved = accountRepository.save(account);
         return toResponseDTO(saved);
@@ -42,6 +79,10 @@ public class AccountService {
     public List<AccountResponseDTO> listByUser(UUID userId) {
         return accountRepository.findAllByUserId(userId)
                 .stream()
+                // Carteira (padrão) primeiro; as demais em ordem alfabética
+                .sorted(Comparator
+                        .comparing((Account a) -> !Boolean.TRUE.equals(a.getIsDefault()))
+                        .thenComparing(Account::getName, String.CASE_INSENSITIVE_ORDER))
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -59,7 +100,19 @@ public class AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
 
         // O tipo da conta (discriminador SINGLE_TABLE) não pode ser alterado aqui.
-        account.setName(request.getName());
+        if (Boolean.TRUE.equals(account.getIsDefault())) {
+            // Carteira: o nome é fixo (o que vier no request é ignorado) e o saldo nunca fica negativo
+            if (request.getBalanceInCents() != null && request.getBalanceInCents() < 0) {
+                throw new ValidationException("A Carteira não pode ficar com saldo negativo");
+            }
+        } else {
+            String name = request.getName().trim();
+            // Só valida se o nome mudou, para não bloquear quem já tinha uma conta com esse nome
+            if (!name.equalsIgnoreCase(account.getName()) && DEFAULT_NAME.equalsIgnoreCase(name)) {
+                throw new ValidationException("O nome \"Carteira\" é reservado para a conta padrão");
+            }
+            account.setName(name);
+        }
 
         if (request.getBalanceInCents() != null) {
             account.setBalanceInCents(request.getBalanceInCents());
@@ -90,6 +143,11 @@ public class AccountService {
     public void delete(UUID accountId, UUID userId) {
         Account account = accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conta não encontrada"));
+
+        if (Boolean.TRUE.equals(account.getIsDefault())) {
+            throw new ValidationException("A Carteira é uma conta padrão e não pode ser excluída");
+        }
+
         accountRepository.delete(account);
     }
 
@@ -97,31 +155,6 @@ public class AccountService {
     public Long getSummary(UUID userId) {
         Long total = accountRepository.sumBalanceByUserId(userId);
         return total != null ? total : 0L;
-    }
-
-    // Monta a subclasse correta com base no accountType
-    private Account buildAccount(AccountRequestDTO request) {
-        return switch (request.getAccountType()) {
-            case "BANK_ACCOUNT" -> {
-                BankAccount ba = new BankAccount();
-                ba.setAgency(request.getAgency());
-                ba.setAccountNumber(request.getAccountNumber());
-                ba.setBranchNumber(request.getBranchNumber());
-                yield ba;
-            }
-            case "CHECKING_ACCOUNT" -> {
-                CheckingAccount ca = new CheckingAccount();
-                ca.setCreditLimitInCents(request.getCreditLimitInCents());
-                yield ca;
-            }
-            case "SAVINGS_ACCOUNT" -> {
-                SavingsAccount sa = new SavingsAccount();
-                sa.setWithdrawalLimitInCents(request.getWithdrawalLimitInCents());
-                yield sa;
-            }
-            case "WALLET" -> new Wallet();
-            default -> throw new ValidationException("Tipo de conta inválido: " + request.getAccountType());
-        };
     }
 
     // Converte Account → AccountResponseDTO
@@ -134,6 +167,7 @@ public class AccountService {
         dto.setBalanceInCents(account.getBalanceInCents());
         dto.setColor(account.getColor());
         dto.setIcon(account.getIcon());
+        dto.setIsDefault(Boolean.TRUE.equals(account.getIsDefault()));
         dto.setCreatedAt(account.getCreatedAt());
         dto.setUpdatedAt(account.getUpdatedAt());
 

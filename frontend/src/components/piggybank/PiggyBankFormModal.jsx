@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { createPiggyBank, updatePiggyBank } from '../../services/PiggyBankService';
 import { InputField } from '../ui/InputField';
 import { ModalShell } from '../ui/ModalShell';
 import { useModalTransition } from '../../hooks/useModalTransition';
@@ -19,6 +18,8 @@ import {
 } from '../../utils/piggyBankUtils';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 import LockOutlined from '@mui/icons-material/LockOutlined';
+import { adjustPiggyBankBalance, createPiggyBank, updatePiggyBank } from '../../services/PiggyBankService';
+import { formatBRL } from '../../utils/formatCurrency';
 
 const COLOR_KEYS = Object.keys(colorMap);
 const ICON_KEYS = Object.keys(piggyIconMap);
@@ -50,12 +51,24 @@ function buildSchema(originalDate) {
       description: z.string().max(255, 'Máximo de 255 caracteres'),
       hasGoal: z.boolean(),
       goal: z.string(),
+      balance: z.string(),
       targetDate: z.string(),
       annualRate: z.string(),
       color: z.string().refine((v) => COLOR_KEYS.includes(v), 'Escolha uma cor'),
       icon: z.string().refine((v) => ICON_KEYS.includes(v), 'Escolha um ícone'),
     })
     .superRefine((data, ctx) => {
+      const balance = parseMoney(data.balance);
+      if (Number.isNaN(balance) || balance < 0) {
+        ctx.addIssue({ code: 'custom', path: ['balance'], message: 'Valor inválido' });
+      } else if (balance > MAX_GOAL) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['balance'],
+          message: 'Valor muito alto (máximo R$ 999.999.999,99)',
+        });
+      }
+
       if (data.hasGoal) {
         const goal = parseMoney(data.goal);
         if (Number.isNaN(goal) || goal <= 0) {
@@ -102,6 +115,7 @@ const EMPTY_VALUES = {
   description: '',
   hasGoal: false,
   goal: '0,00',
+  balance: '0,00',
   targetDate: '',
   annualRate: '',
   color: 'green',
@@ -179,6 +193,11 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
   const hasGoal = watch('hasGoal');
   const selectedColor = watch('color');
   const selectedIcon = watch('icon');
+  const goalText = watch('goal');
+  const goalCents = (() => {
+    const value = parseMoney(goalText);
+    return Number.isNaN(value) ? 0 : Math.round(value * 100);
+  })();
 
   // Preenche (edição) ou limpa (criação) a cada abertura
   useEffect(() => {
@@ -192,6 +211,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         description: piggy.description ?? '',
         hasGoal: piggy.goalInCents != null,
         goal: formatMoney((piggy.goalInCents ?? 0) / 100),
+        balance: formatMoney((piggy.balanceInCents ?? 0) / 100),
         targetDate: piggy.targetDate ?? '',
         annualRate: piggy.annualRate != null ? String(Number(piggy.annualRate)).replace('.', ',') : '',
         color: COLOR_KEYS.includes(piggy.color) ? piggy.color : 'green',
@@ -219,11 +239,19 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
         annualRate: parseRate(data.annualRate),
       };
 
-      const saved = isEdit
+      let saved = isEdit
         ? await updatePiggyBank(piggy.id, payload)
         : await createPiggyBank(payload);
 
+      // Edição: se o valor guardado mudou, ajusta sem registrar guardar/retirar
+      if (isEdit) {
+        const newBalance = moneyTextToCents(data.balance);
+        if (newBalance !== piggy.balanceInCents) {
+          saved = await adjustPiggyBankBalance(piggy.id, newBalance);
+        }
+      }
       toast.success(isEdit ? 'Porquinho atualizado.' : 'Porquinho criado com sucesso!');
+
       onSuccess(saved, isEdit);
     } catch (err) {
       setApiError(err.response?.data?.message || 'Erro ao salvar porquinho.');
@@ -235,7 +263,7 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
   return (
     <ModalShell visible={visible} onClose={onClose} titleId={titleId}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-3">
         <h2 id={titleId} className="text-lg font-bold text-gray-800">
           {isEdit ? 'Editar porquinho' : 'Novo porquinho'}
         </h2>
@@ -253,16 +281,16 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
       {/* [&_label]:text-gray-700 sobrescreve a label branca do InputField */}
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 [&_label]:text-gray-700"
+        className="flex flex-col gap-3 [&_label]:text-gray-700"
       >
         <input type="hidden" {...register('color')} />
         <input type="hidden" {...register('icon')} />
 
         {/* Prévia */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+        <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50">
           <div
             aria-hidden="true"
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0"
             style={{ backgroundColor: colorMap[selectedColor] || colorMap.green }}
           >
             {getPiggyIcon(selectedIcon)}
@@ -330,6 +358,11 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
                 })}
                 error={errors.goal?.message}
               />
+
+              <p className="mt-1 text-xs text-gray-500" aria-live="polite">
+                Meta definida:{' '}
+                <span className="font-semibold text-primary-700">{formatBRL(goalCents)}</span>
+              </p>
             </div>
 
             <InputField
@@ -339,6 +372,33 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
               register={register('targetDate')}
               error={errors.targetDate?.message}
             />
+          </div>
+        )}
+
+        {/* Valor guardado: só na edição. Corrige o saldo sem registrar guardar/retirar */}
+        {isEdit && (
+          <div
+            className="flex flex-col gap-1"
+            onFocus={(e) => {
+              const el = e.target;
+              setTimeout(() => el.select(), 0);
+            }}
+          >
+            <InputField
+              label="Valor guardado (R$)"
+              type="text"
+              inputMode="decimal"
+              maxLength={14}
+              placeholder="0,00"
+              register={register('balance', {
+                onChange: (e) => setValue('balance', sanitizeMoney(e.target.value)),
+                onBlur: (e) => setValue('balance', formatMoney(parseMoney(e.target.value) || 0)),
+              })}
+              error={errors.balance?.message}
+            />
+            <p className="text-xs text-gray-500">
+              Corrige o valor atual sem registrar que guardou ou retirou: as contas e o extrato não mudam.
+            </p>
           </div>
         )}
 

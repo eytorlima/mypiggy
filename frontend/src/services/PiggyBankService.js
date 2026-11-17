@@ -42,3 +42,9 @@ export async function getPiggyBankMovements(id) {
   const response = await api.get(`/piggybanks/${id}/movements`);
   return response.data.data;
 }
+
+// Corrige o valor guardado sem registrar que guardou ou retirou (não mexe nas contas)
+export async function adjustPiggyBankBalance(id, balanceInCents) {
+  const response = await api.put(`/piggybanks/${id}/balance`, { balanceInCents });
+  return response.data.data;
+}

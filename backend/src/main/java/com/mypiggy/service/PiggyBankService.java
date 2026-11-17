@@ -119,11 +119,8 @@ public class PiggyBankService {
         }
 
         long balance = PiggyBankCalculator.principal(flowsOf(movementRepository.findAllByPiggyBankId(id)));
-        if (balance > 0) {
-            if (returnAccountId == null) {
-                throw new ValidationException(
-                        "Este porquinho tem dinheiro guardado. Informe a conta que receberá o valor (returnAccountId)");
-            }
+              // Com saldo: devolve à conta escolhida. Sem conta (returnAccountId nulo), o valor é descartado.
+        if (balance > 0 && returnAccountId != null) {
             Account account = findAccount(returnAccountId, userId);
             moveToAccount(piggyBank, account, balance);
         }
@@ -185,6 +182,32 @@ public class PiggyBankService {
 
         return toResponseDTO(piggyBank, movementRepository.findAllByPiggyBankId(id), LocalDate.now());
     }
+
+    /**
+     * Corrige o valor guardado SEM registrar depósito/retirada: grava só a diferença como
+     * movimentação sem conta e sem transação. Contas e extrato não mudam.
+     */
+    @Transactional
+    public PiggyBankResponseDTO adjustBalance(UUID id, long newBalanceInCents, UUID userId) {
+        PiggyBank piggyBank = findOwned(id, userId);
+
+        long current = PiggyBankCalculator.principal(flowsOf(movementRepository.findAllByPiggyBankId(id)));
+        long diff = newBalanceInCents - current;
+
+        if (diff != 0) {
+            PiggyBankMovement movement = new PiggyBankMovement();
+            movement.setPiggyBank(piggyBank);
+            movement.setAccount(null);
+            movement.setTransaction(null);
+            movement.setMovementType(diff > 0 ? DEPOSIT : WITHDRAWAL);
+            movement.setAmountInCents(Math.abs(diff));
+            movement.setMovementDate(LocalDateTime.now());
+            movementRepository.save(movement);
+        }
+
+        return toResponseDTO(piggyBank, movementRepository.findAllByPiggyBankId(id), LocalDate.now());
+    }
+
 
     @Transactional(readOnly = true)
     public List<PiggyBankMovementResponseDTO> listMovements(UUID id, UUID userId) {

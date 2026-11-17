@@ -10,15 +10,13 @@ import { useToast } from '../../contexts/ToastContext';
 import { formatBRL } from '../../utils/formatCurrency';
 import {toCents, parseMoney, formatMoney, sanitizeMoney} from '../../utils/moneyUtils';
 import { colorMap, accountIconMap } from '../../utils/accountUtils';
-import { SelectField } from './SelectField';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
 import TrendingDownOutlined from '@mui/icons-material/TrendingDownOutlined';
 
-const accountTypes = [
-  { value: 'BANK_ACCOUNT', label: 'Conta Bancária' },
-  { value: 'WALLET', label: 'Carteira' },
-];
+// Toda conta criada pelo usuário é bancária (o back-end também força esse tipo)
+const NEW_ACCOUNT_TYPE = 'BANK_ACCOUNT';
 
 // Primeiro ícone da lista é sempre o padrão
 const DEFAULT_ICON = Object.keys(accountIconMap)[0];
@@ -26,8 +24,12 @@ const DEFAULT_ICON = Object.keys(accountIconMap)[0];
 /* ---------- Schema ---------- */
 
 const schema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório').max(100),
-  accountType: z.string().min(1, 'Tipo é obrigatório'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Nome é obrigatório')
+    .max(30, 'Máximo de 30 caracteres')
+    .regex(/^\p{L}+(?: \p{L}+)*$/u, 'Use apenas letras e espaços (sem números ou símbolos)'),
   // O campo guarda apenas o valor (módulo). O sinal vem de isDebt.
   balance: z
     .string()
@@ -40,7 +42,6 @@ const schema = z.object({
 
 const EMPTY_VALUES = {
   name: '',
-  accountType: '',
   balance: '0,00',
   isDebt: false,
   color: 'green',
@@ -95,6 +96,8 @@ function BalanceSignToggle({ isDebt, onChange }) {
 
 export function AccountFormModal({ open, account, onClose, onSuccess }) {
   const isEdit = !!account;
+  // Carteira (conta padrão): nome fixo e saldo nunca negativo
+  const isDefaultAccount = !!account?.isDefault;
   const [apiError, setApiError] = useState('');
   const titleId = useId();
   const toast = useToast();
@@ -113,7 +116,6 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
     defaultValues: EMPTY_VALUES,
   });
 
-  const accountType = watch('accountType');
   const selectedColor = watch('color');
   const selectedIcon = watch('icon');
   const isDebt = watch('isDebt');
@@ -133,11 +135,11 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
     setApiError('');
     if (account) {
       const cents = account.balanceInCents || 0;
+      const debt = !account.isDefault && cents < 0; // Carteira nunca é devedora
       reset({
         name: account.name,
-        accountType: account.accountType,
         balance: formatMoney(Math.abs(cents) / 100),
-        isDebt: cents < 0,
+        isDebt: debt,
         color: account.color || 'green',
         icon: account.icon || DEFAULT_ICON,
       });
@@ -150,11 +152,13 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
     setApiError('');
     try {
       const cents = Math.round(parseMoney(data.balance) * 100);
-      const signedCents = data.isDebt && cents > 0 ? -cents : cents;
+      const debt = data.isDebt && !isDefaultAccount;
+      const signedCents = debt && cents > 0 ? -cents : cents;
 
       const payload = {
         name: data.name,
-        accountType: data.accountType,
+        // Na edição mantém o tipo atual; na criação, sempre conta bancária
+        accountType: isEdit ? account.accountType : NEW_ACCOUNT_TYPE,
         balanceInCents: signedCents,
         color: data.color,
         icon: data.icon,
@@ -164,7 +168,7 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
         ? await updateAccount(account.id, payload)
         : await createAccount(payload);
 
-      toast.success(isEdit ? 'Conta atualizada.' : 'Conta criada com sucesso!');
+      toast.success(isEdit ? 'Conta atualizada.' : 'Conta bancária criada com sucesso!');
       onSuccess(saved, isEdit);
     } catch (err) {
       setApiError(err.response?.data?.message || 'Erro ao salvar conta.');
@@ -173,12 +177,18 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
 
   if (!mounted) return null;
 
+  const title = !isEdit
+    ? 'Nova conta bancária'
+    : isDefaultAccount
+      ? 'Editar Carteira'
+      : 'Editar conta';
+
   return (
     <ModalShell visible={visible} onClose={onClose} titleId={titleId}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h2 id={titleId} className="text-lg font-bold text-gray-800">
-          {isEdit ? 'Editar conta' : 'Nova conta'}
+          {title}
         </h2>
         <button
           type="button"
@@ -197,33 +207,53 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
         className="flex flex-col gap-4 [&_label]:text-gray-700"
       >
         {/* Campos "escondidos" que guardam valores dos seletores customizados */}
-        <input type="hidden" {...register('accountType')} />
         <input type="hidden" {...register('color')} />
         <input type="hidden" {...register('icon')} />
 
-        {/* Nome */}
-        <InputField
-          className="text-black"
-          label="Nome da conta"
-          placeholder="Ex: Nubank, Carteira..."
-          register={register('name')}
-          error={errors.name?.message}
-        />
+        {/* Aviso: deixa claro que a conta criada aqui é bancária */}
+        {!isEdit && (
+          <div
+            role="note"
+            className="flex gap-2 p-3 rounded-lg bg-primary-50 border border-primary-100 text-xs text-primary-700"
+          >
+            <InfoOutlined fontSize="small" aria-hidden="true" className="flex-shrink-0" />
+            <p>
+              Você está criando uma <strong>conta bancária</strong> (Nubank, Itaú, poupança...).
+              O dinheiro em espécie fica na sua <strong>Carteira</strong>, que já foi criada
+              automaticamente.
+            </p>
+          </div>
+        )}
 
-        {/* Tipo */}
-        <SelectField
-          label="Tipo de conta"
-          options={accountTypes}
-          value={accountType}
-          onChange={(v) => setValue('accountType', v, { shouldValidate: true })}
-          error={errors.accountType?.message}
-        />
+        {/* Nome (na Carteira é somente leitura; readOnly mantém o valor no formulário) */}
+        <div className="flex flex-col gap-1">
+          <InputField
+            className={isDefaultAccount ? 'text-gray-500' : 'text-black'}
+            label={isDefaultAccount ? 'Nome' : 'Nome da conta'}
+            placeholder="Ex: Nubank, Itaú..."
+            maxLength={30}
+            readOnly={isDefaultAccount}
+            register={register('name', {
+              // Impede digitar números e símbolos
+              onChange: (e) => setValue('name', e.target.value.replace(/[^\p{L} ]/gu, '')),
+            })}
+            error={errors.name?.message}
+          />
+          {isDefaultAccount && (
+            <p className="text-xs text-gray-500">
+              A Carteira é uma conta padrão: o nome não pode ser alterado e ela não pode ser
+              excluída.
+            </p>
+          )}
+        </div>
 
-        {/* Positivo / Devedor */}
-        <BalanceSignToggle
-          isDebt={isDebt}
-          onChange={(v) => setValue('isDebt', v, { shouldDirty: true })}
-        />
+        {/* Positivo / Devedor: não existe para a Carteira */}
+        {!isDefaultAccount && (
+          <BalanceSignToggle
+            isDebt={isDebt}
+            onChange={(v) => setValue('isDebt', v, { shouldDirty: true })}
+          />
+        )}
 
         {/* Saldo: seleciona o conteúdo ao focar para a digitação substituir o 0,00 */}
         <div
@@ -314,7 +344,7 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
           className="w-full py-3 rounded-lg bg-primary-500 text-white font-semibold hover:bg-primary-600
                      disabled:opacity-50 transition-colors hover:cursor-pointer"
         >
-          {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar conta'}
+          {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar conta bancária'}
         </button>
       </form>
     </ModalShell>

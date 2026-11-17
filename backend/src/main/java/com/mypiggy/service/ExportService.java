@@ -216,11 +216,7 @@ public class ExportService {
         rows.sort(Comparator.<Map.Entry<String, long[]>>comparingLong(e -> e.getValue()[0]).reversed()
                 .thenComparing(Map.Entry::getKey));
 
-        Paragraph heading = new Paragraph(title, HEADING_FONT);
-        heading.setSpacingBefore(16);
-        heading.setSpacingAfter(6);
-        heading.setKeepTogether(true);
-        document.add(heading);
+        document.add(sectionHeading(title));
 
         PdfPTable table = new PdfPTable(3);
         table.setWidthPercentage(100);
@@ -244,11 +240,7 @@ public class ExportService {
 
     private void addTransactionsSection(Document document, List<Transaction> transactions)
             throws DocumentException {
-        Paragraph heading = new Paragraph("Transações (" + transactions.size() + ")", HEADING_FONT);
-        heading.setSpacingBefore(16);
-        heading.setSpacingAfter(6);
-        heading.setKeepTogether(true);
-        document.add(heading);
+        document.add(sectionHeading("Transações (" + transactions.size() + ")"));
 
         PdfPTable table = new PdfPTable(6);
         table.setWidthPercentage(100);
@@ -291,30 +283,58 @@ public class ExportService {
         document.add(table);
     }
 
+    // Título de seção com espaçamento explícito (evita texto cortado/colado)
+    private static Paragraph sectionHeading(String text) {
+        Paragraph p = new Paragraph(text, HEADING_FONT);
+        p.setLeading(0f, 1.4f);
+        p.setSpacingBefore(18);
+        p.setSpacingAfter(8);
+        p.setKeepTogether(true);
+        return p;
+    }
+
     private static PdfPCell summaryCell(String label, String value, Color color) {
         PdfPCell cell = new PdfPCell();
-        cell.addElement(new Paragraph(label, SMALL_FONT));
-        cell.addElement(new Paragraph(value, new Font(Font.HELVETICA, 14, Font.BOLD, color)));
+        Paragraph labelP = new Paragraph(label, SMALL_FONT);
+        labelP.setLeading(0f, 1.4f);
+        Paragraph valueP = new Paragraph(value, new Font(Font.HELVETICA, 14, Font.BOLD, color));
+        valueP.setLeading(0f, 1.4f);
+        cell.addElement(labelP);
+        cell.addElement(valueP);
         cell.setPadding(8);
+        cell.setUseAscender(true);
+        cell.setUseDescender(true);
         cell.setBorderColor(BORDER);
         return cell;
     }
 
     private static PdfPCell headerCell(String text, int align) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, TEXT_BOLD_FONT));
+        // leading explícito: altura da linha = 1,4 x o tamanho da fonte
+        PdfPCell cell = new PdfPCell(new Phrase(TEXT_BOLD_FONT.getSize() * 1.4f, text, TEXT_BOLD_FONT));
         cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setBackgroundColor(HEADER_BG);
-        cell.setPadding(5);
+        cell.setPaddingTop(6);
+        cell.setPaddingBottom(7);
+        cell.setPaddingLeft(5);
+        cell.setPaddingRight(5);
+        cell.setUseAscender(true);
+        cell.setUseDescender(true);
         cell.setBorder(Rectangle.BOTTOM);
         cell.setBorderColor(BORDER);
         return cell;
     }
 
     private static PdfPCell bodyCell(String text, Font font, int align, Color background) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        PdfPCell cell = new PdfPCell(new Phrase(font.getSize() * 1.4f, text, font));
         cell.setHorizontalAlignment(align);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cell.setPadding(5);
+        cell.setPaddingTop(5);
+        cell.setPaddingBottom(6);
+        cell.setPaddingLeft(5);
+        cell.setPaddingRight(5);
+        cell.setUseAscender(true);
+        cell.setUseDescender(true);
         cell.setBorder(Rectangle.BOTTOM);
         cell.setBorderColor(BORDER);
         if (background != null) cell.setBackgroundColor(background);

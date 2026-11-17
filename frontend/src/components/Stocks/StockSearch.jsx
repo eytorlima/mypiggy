@@ -160,7 +160,7 @@ export default function StockSearch({ onSelect }) {
             aria-invalid={formError ? true : undefined}
             aria-describedby={formError ? errorId : undefined}
             value={term}
-            maxLength={50}
+            maxLength={20}
             onChange={(event) => {
               setTerm(event.target.value);
               setFormError('');

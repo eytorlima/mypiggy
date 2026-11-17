@@ -47,7 +47,8 @@ const schema = z
       .string()
       .trim()
       .min(1, 'Nome é obrigatório')
-      .max(50, 'Máximo de 50 caracteres'),
+      .max(18, 'Máximo de 18 letras')
+      .regex(/^\p{L}+$/u, 'Use apenas letras, sem espaços, números ou símbolos'),
     type: z.enum(['EXPENSE', 'INCOME']),
     color: z.string().refine((v) => COLOR_KEYS.includes(v), 'Escolha uma cor'),
     icon: z.string().min(1, 'Escolha um ícone'),
@@ -184,7 +185,7 @@ export function CategoryFormModal({ open, category, onClose, onSuccess }) {
           >
             {categoryIconMap[selectedIcon] || categoryIconMap.other}
           </div>
-          <p className="font-semibold text-gray-800 truncate">
+          <p className="min-w-0 font-semibold text-gray-800 truncate">
             {nameValue?.trim() || 'Nome da categoria'}
           </p>
         </div>
@@ -232,7 +233,8 @@ export function CategoryFormModal({ open, category, onClose, onSuccess }) {
         <InputField
           className="text-black"
           label="Nome"
-          placeholder="Ex: Academia, Freelas..."
+          placeholder="Ex: Academia, Freelas"
+          maxLength={18}
           register={register('name')}
           error={errors.name?.message}
         />
