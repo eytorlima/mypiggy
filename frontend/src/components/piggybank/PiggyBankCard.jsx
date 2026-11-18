@@ -1,8 +1,11 @@
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import { formatBRL } from '../../utils/formatCurrency';
+import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 import {
-  GOLD,
+  REACHED_BG,
+  REACHED_BORDER,
+  REACHED_TEXT,
   colorOf,
   daysUntil,
   formatDateBR,
@@ -14,7 +17,7 @@ import {
 function Badge({ children, color, textColor }) {
   return (
     <span
-      className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
       style={{ color: textColor || color, backgroundColor: `${color}22` }}
     >
       {children}
@@ -34,7 +37,7 @@ function deadlineText(piggy) {
 export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }) {
   const hasGoal = piggy.goalInCents != null;
   const reached = !!piggy.goalReached;
-  const accent = reached ? GOLD : colorOf(piggy);
+  const accent = colorOf(piggy);
   const percent = Math.min(100, piggy.progressPercent ?? 0);
   const remaining = hasGoal ? Math.max(0, piggy.goalInCents - piggy.totalInCents) : 0;
   const overdue = hasGoal && !reached && piggy.targetDate && daysUntil(piggy.targetDate) < 0;
@@ -43,7 +46,7 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
     <div
       className="rounded-2xl border border-black/10 bg-white p-4 shadow-md flex flex-col gap-3
                  transition-shadow hover:shadow-lg"
-      style={reached ? { borderColor: GOLD, backgroundColor: '#fffbeb' } : undefined}
+      style={reached ? { borderColor: REACHED_BORDER, backgroundColor: REACHED_BG } : undefined}
     >
       {/* Cabeçalho */}
       <div className="flex items-start gap-3">
@@ -62,8 +65,9 @@ export function PiggyBankCard({ piggy, onDeposit, onWithdraw, onEdit, onDelete }
             </h2>
             {piggy.isEmergency && <Badge color="#3b82f6" textColor="#1d4ed8">Emergência</Badge>}
             {reached && (
-              <Badge color={GOLD} textColor="#92400e">
-                <span aria-hidden="true">🎉 </span>Meta atingida
+              <Badge color={accent} textColor={REACHED_TEXT}>
+                <CelebrationOutlined style={{ fontSize: 14 }} aria-hidden="true" />
+                Meta atingida
               </Badge>
             )}
           </div>

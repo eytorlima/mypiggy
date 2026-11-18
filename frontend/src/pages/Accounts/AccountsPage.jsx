@@ -7,6 +7,7 @@ import { SkeletonCard } from '../../components/ui/SkeletonCard';
 import { useToast } from '../../contexts/ToastContext';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
+import AccountBalanceOutlined from '@mui/icons-material/AccountBalanceOutlined';
 
 export function AccountsPage() {
   const toast = useToast();
@@ -84,6 +85,9 @@ export function AccountsPage() {
     setEditingAccount(null);
   }
 
+  // Sem conta bancária: lista vazia ou só a Carteira padrão
+  const onlyDefaultAccount = accounts.every((a) => a.isDefault);
+
   return (
     <div className="flex flex-col gap-4 p-4 w-full max-w-3xl mx-auto" aria-busy={loading}>
       <div className="flex items-center justify-center w-full relative mt-5">
@@ -108,21 +112,6 @@ export function AccountsPage() {
         </div>
       )}
 
-      {!loading && !error && accounts.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <SavingsOutlined className="text-gray-300" style={{ fontSize: 64 }} aria-hidden="true" />
-          <p className="text-gray-500 font-medium">Nenhuma conta cadastrada</p>
-          <p className="text-gray-500 text-sm">Adicione sua primeira conta para começar.</p>
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="mt-2 px-5 py-2 bg-primary-500 text-white text-sm font-semibold rounded-lg hover:cursor-pointer hover:bg-primary-600 transition-colors"
-          >
-            Adicionar conta
-          </button>
-        </div>
-      )}
-
       {!loading && accounts.length > 0 && (
         <div className="flex flex-col gap-3">
           {accounts.map(account => (
@@ -133,6 +122,24 @@ export function AccountsPage() {
               onDelete={() => handleOpenDelete(account)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Só existe a Carteira padrão (ou a lista veio vazia) */}
+      {!loading && !error && onlyDefaultAccount && (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+          <AccountBalanceOutlined className="text-gray-300" style={{ fontSize: 64 }} aria-hidden="true" />
+          <p className="text-gray-500 font-medium">Nenhuma conta bancária cadastrada</p>
+          <p className="text-gray-500 text-sm">
+            Sua Carteira já está pronta. Adicione uma conta bancária para acompanhar também o dinheiro do banco.
+          </p>
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="mt-2 px-5 py-2 bg-primary-500 text-white text-sm font-semibold rounded-lg hover:cursor-pointer hover:bg-primary-600 transition-colors"
+          >
+            Nova conta bancária
+          </button>
         </div>
       )}
 

@@ -198,6 +198,11 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
     const value = parseMoney(goalText);
     return Number.isNaN(value) ? 0 : Math.round(value * 100);
   })();
+  const balanceText = watch('balance');
+  const balanceCents = (() => {
+    const value = parseMoney(balanceText);
+    return Number.isNaN(value) ? 0 : Math.round(value * 100);
+  })();
 
   // Preenche (edição) ou limpa (criação) a cada abertura
   useEffect(() => {
@@ -396,6 +401,10 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
               })}
               error={errors.balance?.message}
             />
+            <p className="text-xs text-gray-500" aria-live="polite">
+              Valor guardado:{' '}
+              <span className="font-semibold text-primary-700">{formatBRL(balanceCents)}</span>
+            </p>
             <p className="text-xs text-gray-500">
               Corrige o valor atual sem registrar que guardou ou retirou: as contas e o extrato não mudam.
             </p>
@@ -416,7 +425,8 @@ export function PiggyBankFormModal({ open, piggy, onClose, onSuccess }) {
             error={errors.annualRate?.message}
           />
           <p className="text-xs text-gray-500">
-            Usado para estimar quanto o dinheiro rende (juros compostos). Deixe em branco se não rende.
+            Usado para estimar quanto o dinheiro rende (juros compostos). <br/>
+            Deixe em branco se não rende.
           </p>
         </div>
 

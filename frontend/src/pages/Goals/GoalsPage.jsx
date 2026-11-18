@@ -10,6 +10,7 @@ import { DepositWithdrawModal } from '../../components/piggybank/DepositWithdraw
 import { PiggyBankDeleteModal } from '../../components/piggybank/PiggyBankDeleteModal';
 import { useToast } from '../../contexts/ToastContext';
 import { formatBRL } from '../../utils/formatCurrency';
+import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
 
 export function GoalsPage() {
   const toast = useToast();
@@ -156,7 +157,7 @@ export function GoalsPage() {
           hover:cursor-pointer hover:bg-primary-100 hover:shadow-xs ease-in-out duration-200"
         >
           <AddOutlined fontSize="small" aria-hidden="true" />
-          Novo
+          Novo Porquinho
         </button>
       </div>
 
@@ -180,8 +181,8 @@ export function GoalsPage() {
               {piggyBanks.length} {piggyBanks.length === 1 ? 'porquinho' : 'porquinhos'}
             </p>
             {goalsReached > 0 && (
-              <p className="font-semibold text-amber-700">
-                <span aria-hidden="true">🎉 </span>
+              <p className="flex items-center justify-end gap-1 font-semibold text-sky-700">
+                <CelebrationOutlined style={{ fontSize: 16 }} aria-hidden="true" />
                 {goalsReached} {goalsReached === 1 ? 'meta atingida' : 'metas atingidas'}
               </p>
             )}

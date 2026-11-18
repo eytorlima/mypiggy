@@ -1,21 +1,33 @@
 import { useNavigate } from 'react-router-dom';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 import { formatBRL } from '../../utils/formatCurrency';
-import { GOLD, colorOf, getPiggyIcon } from '../../utils/piggyBankUtils';
+import CelebrationOutlined from '@mui/icons-material/CelebrationOutlined';
+import { REACHED_BG, REACHED_BORDER, REACHED_TEXT, colorOf, getPiggyIcon } from '../../utils/piggyBankUtils';
 
 const MAX_ITEMS = 4;
+
+function Badge({ children, color, textColor }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+      style={{ color: textColor || color, backgroundColor: `${color}22` }}
+    >
+      {children}
+    </span>
+  );
+}
 
 // Versão compacta do card, para o Dashboard
 function PiggyBankMiniCard({ piggy }) {
   const hasGoal = piggy.goalInCents != null;
   const reached = !!piggy.goalReached;
-  const accent = reached ? GOLD : colorOf(piggy);
+  const accent = colorOf(piggy);
   const percent = Math.min(100, piggy.progressPercent ?? 0);
 
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-xl border border-black/10 bg-white w-full"
-      style={reached ? { borderColor: GOLD, backgroundColor: '#fffbeb' } : undefined}
+      style={reached ? { borderColor: REACHED_BORDER, backgroundColor: REACHED_BG } : undefined}
     >
       <div
         aria-hidden="true"
@@ -27,9 +39,15 @@ function PiggyBankMiniCard({ piggy }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <p className="font-semibold text-gray-800 text-sm truncate">
-            {piggy.name}{reached && <span aria-label="Meta atingida"> 🎉</span>}
-          </p>
+          <div className="flex items-center gap-1 min-w-0">
+            <p className="font-semibold text-gray-800 text-sm truncate">{piggy.name}</p>
+            {reached && (
+              <Badge color={accent} textColor={REACHED_TEXT}>
+                <CelebrationOutlined style={{ fontSize: 14 }} aria-hidden="true" />
+                Meta atingida
+              </Badge>
+            )}
+          </div>
           <p className="font-bold text-gray-800 text-sm whitespace-nowrap">
             {formatBRL(piggy.totalInCents)}
           </p>

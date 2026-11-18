@@ -15,6 +15,7 @@ import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined';
 import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
+import { ConfirmLogoutModal } from '../../components/ui/ConfirmLogoutModal';
 
 // Moeda, idioma e fuso são fixos no sistema (CHECK no banco): aparecem só como informação
 const CURRENCY_LABELS = { BRL: 'Real brasileiro (BRL)' };
@@ -65,6 +66,10 @@ const secondaryButton =
   'flex-1 min-h-10 rounded-lg border border-primary-500 text-primary-700 text-sm font-semibold ' +
   'hover:cursor-pointer hover:bg-primary-500 hover:text-white transition-colors';
 
+const warningButton =
+  'flex-1 min-h-10 rounded-lg border border-amber-600 text-amber-700 text-sm font-semibold ' +
+  'hover:cursor-pointer hover:bg-amber-600 hover:text-white transition-colors';
+
 function NavButton({ to, label }) {
   const navigate = useNavigate();
   return (
@@ -89,6 +94,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const [nameOpen, setNameOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -137,7 +143,8 @@ export function SettingsPage() {
     toast.success('Senha alterada com sucesso.');
   }
 
-  function handleLogout() {
+  function handleConfirmLogout() {
+    setLogoutOpen(false);
     logout(); // remove o token do localStorage e zera o usuário
     navigate('/login', { replace: true });
   }
@@ -155,7 +162,7 @@ export function SettingsPage() {
           <button type="button" onClick={() => setNameOpen(true)} className={secondaryButton}>
             Editar nome
           </button>
-          <button type="button" onClick={() => setPasswordOpen(true)} className={secondaryButton}>
+            <button type="button" onClick={() => setPasswordOpen(true)} className={warningButton}>
             Alterar senha
           </button>
         </div>
@@ -240,7 +247,7 @@ export function SettingsPage() {
       <Section icon={<LogoutOutlined fontSize="small" />} title="Conta">
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => setLogoutOpen(true)}
           className="min-h-10 rounded-lg border border-red-500 text-red-600 text-sm font-semibold
                      hover:cursor-pointer hover:bg-red-500 hover:text-white transition-colors"
         >
@@ -259,6 +266,12 @@ export function SettingsPage() {
         open={passwordOpen}
         onClose={() => setPasswordOpen(false)}
         onSuccess={handlePasswordSuccess}
+      />
+
+      <ConfirmLogoutModal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleConfirmLogout}
       />
     </div>
   );

@@ -35,6 +35,11 @@ export const piggyIconMap = {
 export const DEFAULT_PIGGY_ICON = 'piggy';
 export const DEFAULT_EMERGENCY_ICON = 'shield';
 
+// Meta atingida: azul claro
+export const REACHED_BORDER = '#7dd3fc'; // borda do card
+export const REACHED_BG = '#f0f9ff';     // fundo do card
+export const REACHED_TEXT = '#0369a1';   // texto do selo
+
 // Cor de destaque quando a meta é atingida
 export const GOLD = '#f59e0b';
 
@@ -82,3 +87,4 @@ export function moneyTextToCents(text) {
 export function formatRate(rate) {
   return `${Number(rate).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}%`;
 }
+

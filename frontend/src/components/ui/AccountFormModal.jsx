@@ -284,7 +284,7 @@ export function AccountFormModal({ open, account, onClose, onSuccess }) {
         {/* Prévia do saldo final */}
         <p className="text-xs text-gray-500 -mt-2" aria-live="polite">
           Saldo da conta:{' '}
-          <span className={`font-semibold ${previewCents < 0 ? 'text-red-600' : 'text-primary-700'}`}>
+          <span   className={`font-semibold ${previewCents > 0 ? 'text-primary-700' : previewCents < 0 ? 'text-red-600' : 'text-gray-500'}`}>
             {formatBRL(previewCents)}
           </span>
         </p>

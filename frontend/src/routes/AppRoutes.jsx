@@ -26,7 +26,7 @@ export function AppRoutes() {
         <Route path="/login-options" element={<LoginOptionsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPage />} />
 
         {/* Rotas privadas — todas filhas do AppLayout */}
         <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>

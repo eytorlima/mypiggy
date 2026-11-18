@@ -159,7 +159,7 @@ export function RegisterPage() {
             <label htmlFor="privacy" className="text-xs text-white leading-tight">
               Ao cadastrar, você concorda com nossa{' '}
               <Link
-                to="/privacy"
+                to="/privacy-policy"
                 className="underline font-semibold text-black"
                 target="_blank"
                 rel="noopener noreferrer"
