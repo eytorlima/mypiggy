@@ -1,0 +1,278 @@
+import { useEffect, useId, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { getSettings, updateSettings } from '../../services/userService';
+import { SkeletonCard } from '../../components/ui/SkeletonCard';
+import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
+import { EditNameModal } from '../../components/settings/EditNameModal';
+import { ChangePasswordModal } from '../../components/settings/ChangePasswordModal';
+import PersonOutlined from '@mui/icons-material/PersonOutlined';
+import TuneOutlined from '@mui/icons-material/TuneOutlined';
+import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
+import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
+import ChevronRightOutlined from '@mui/icons-material/ChevronRightOutlined';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
+import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
+import { ConfirmLogoutModal } from '../../components/ui/ConfirmLogoutModal';
+
+// Moeda, idioma e fuso são fixos no sistema (CHECK no banco): aparecem só como informação
+const CURRENCY_LABELS = { BRL: 'Real brasileiro (BRL)' };
+const LANGUAGE_LABELS = { 'pt-BR': 'Português (Brasil)' };
+const TIME_ZONE_LABELS = { 'America/Sao_Paulo': 'Brasília (GMT-3)' };
+
+function Section({ icon, title, children }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-gray-300 bg-white p-4 shadow-xs">
+      <div className="flex items-center gap-2 text-gray-700">
+        <span aria-hidden="true">{icon}</span>
+        <h2 className="font-semibold">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs font-medium text-gray-500">{label}</span>
+      <span className="text-sm text-gray-700 break-words">{value || '—'}</span>
+    </div>
+  );
+}
+
+// Campo fixo: mostra o valor num select desabilitado (única opção possível)
+function FixedSelect({ label, value, labels }) {
+  const id = useId();
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-xs font-medium text-gray-500">{label}</label>
+      <select
+        id={id}
+        disabled
+        value={value}
+        onChange={() => {}}
+        className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 opacity-60 cursor-not-allowed"
+      >
+        <option value={value}>{labels[value] || value}</option>
+      </select>
+    </div>
+  );
+}
+
+const secondaryButton =
+  'flex-1 min-h-10 rounded-lg border border-primary-500 text-primary-700 text-sm font-semibold ' +
+  'hover:cursor-pointer hover:bg-primary-500 hover:text-white transition-colors';
+
+const warningButton =
+  'flex-1 min-h-10 rounded-lg border border-amber-600 text-amber-700 text-sm font-semibold ' +
+  'hover:cursor-pointer hover:bg-amber-600 hover:text-white transition-colors';
+
+function NavButton({ to, label }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(to)}
+      className="flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 min-h-11 text-sm text-left
+                 text-gray-700 hover:cursor-pointer hover:border-primary-500 transition-colors"
+    >
+      {label}
+      <ChevronRightOutlined fontSize="small" className="shrink-0 text-gray-500" aria-hidden="true" />
+    </button>
+  );
+}
+
+export function SettingsPage() {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { user, logout, updateUser } = useAuth();
+
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+
+  const [nameOpen, setNameOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+    try {
+      setLoading(true);
+      setLoadError('');
+      setSettings(await getSettings());
+    } catch {
+      setLoadError('Não foi possível carregar as preferências.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Atualização otimista: o interruptor muda na hora e volta atrás se a API falhar
+  async function handleToggleNotifications(next) {
+    const previous = settings;
+    setSettings({ ...settings, notificationEnabled: next });
+    setSavingNotifications(true);
+
+    try {
+      const saved = await updateSettings({ notificationEnabled: next });
+      setSettings(saved);
+    } catch (err) {
+      setSettings(previous);
+      toast.error(err.response?.data?.message || 'Não foi possível salvar a preferência.');
+    } finally {
+      setSavingNotifications(false);
+    }
+  }
+
+  function handleNameSuccess(profile) {
+    updateUser({ name: profile.name }); // o nome novo aparece no app sem novo login
+    setNameOpen(false);
+    toast.success('Nome atualizado com sucesso.');
+  }
+
+  function handlePasswordSuccess() {
+    setPasswordOpen(false);
+    toast.success('Senha alterada com sucesso.');
+  }
+
+  function handleConfirmLogout() {
+    setLogoutOpen(false);
+    logout(); // remove o token do localStorage e zera o usuário
+    navigate('/login', { replace: true });
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4 w-full max-w-2xl mx-auto" aria-busy={loading}>
+      <h1 className="font-bold text-gray-700 text-center mt-5">Configurações</h1>
+
+      {/* Perfil */}
+      <Section icon={<PersonOutlined fontSize="small" />} title="Perfil">
+        <InfoRow label="Nome" value={user?.name} />
+        <InfoRow label="E-mail" value={user?.email} />
+
+        <div className="flex flex-col min-[420px]:flex-row gap-3 mt-1">
+          <button type="button" onClick={() => setNameOpen(true)} className={secondaryButton}>
+            Editar nome
+          </button>
+            <button type="button" onClick={() => setPasswordOpen(true)} className={warningButton}>
+            Alterar senha
+          </button>
+        </div>
+      </Section>
+
+      {/* Preferências */}
+      <Section icon={<TuneOutlined fontSize="small" />} title="Preferências">
+        {loading && (
+          <div className="flex flex-col gap-3">
+            <p className="sr-only" role="status">Carregando preferências...</p>
+            <SkeletonCard height="h-10" />
+            <SkeletonCard height="h-10" />
+            <SkeletonCard height="h-10" />
+          </div>
+        )}
+
+        {!loading && loadError && (
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p role="alert" className="text-red-700 text-sm text-center">{loadError}</p>
+            <button
+              type="button"
+              onClick={loadSettings}
+              className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-semibold
+                         hover:cursor-pointer hover:bg-primary-600 transition-colors"
+            >
+              Tentar de novo
+            </button>
+          </div>
+        )}
+
+        {!loading && settings && (
+          <>
+            <FixedSelect label="Moeda" value={settings.currency} labels={CURRENCY_LABELS} />
+            <FixedSelect label="Idioma" value={settings.language} labels={LANGUAGE_LABELS} />
+            <FixedSelect label="Fuso horário" value={settings.timeZone} labels={TIME_ZONE_LABELS} />
+
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-gray-700">Notificações</span>
+                <span className="text-xs text-gray-500">Lembretes e avisos dentro do sistema</span>
+              </div>
+              <ToggleSwitch
+                label="Ativar notificações"
+                checked={settings.notificationEnabled}
+                disabled={savingNotifications}
+                onChange={handleToggleNotifications}
+              />
+            </div>
+          </>
+        )}
+      </Section>
+
+      {/* Categorias */}
+      <Section icon={<CategoryOutlined fontSize="small" />} title="Categorias">
+        <button
+          type="button"
+          onClick={() => navigate('/categories')}
+          className="flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 min-h-11 text-sm text-left
+                     text-gray-700 hover:cursor-pointer hover:border-primary-500 transition-colors"
+        >
+          Gerenciar categorias personalizadas
+          <ChevronRightOutlined fontSize="small" className="shrink-0 text-gray-500" aria-hidden="true" />
+        </button>
+      </Section>
+
+      {/* Contas */}
+      <Section icon={<AccountBalanceWalletOutlined fontSize="small" />} title="Contas">
+        <NavButton to="/accounts" label="Gerenciar contas e carteiras" />
+      </Section>
+
+      {/* Porquinhos */}
+      <Section icon={<SavingsOutlined fontSize="small" />} title="Porquinhos">
+        <NavButton to="/goals" label="Gerenciar porquinhos e metas" />
+      </Section>
+
+      {/* Relatórios */}
+      <Section icon={<BarChartOutlined fontSize="small" />} title="Relatórios">
+        <NavButton to="/reports" label="Ver relatórios e exportar extrato" />
+      </Section>
+
+      {/* Conta/Account */}
+      <Section icon={<LogoutOutlined fontSize="small" />} title="Conta">
+        <button
+          type="button"
+          onClick={() => setLogoutOpen(true)}
+          className="min-h-10 rounded-lg border border-red-500 text-red-600 text-sm font-semibold
+                     hover:cursor-pointer hover:bg-red-500 hover:text-white transition-colors"
+        >
+          Sair
+        </button>
+      </Section>
+
+      <EditNameModal
+        open={nameOpen}
+        currentName={user?.name}
+        onClose={() => setNameOpen(false)}
+        onSuccess={handleNameSuccess}
+      />
+
+      <ChangePasswordModal
+        open={passwordOpen}
+        onClose={() => setPasswordOpen(false)}
+        onSuccess={handlePasswordSuccess}
+      />
+
+      <ConfirmLogoutModal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleConfirmLogout}
+      />
+    </div>
+  );
+}
